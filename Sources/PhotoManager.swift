@@ -1,0 +1,26 @@
+import Photos
+import SwiftUI
+
+class PhotoManager: ObservableObject {
+    @Published var assets: [PHAsset] = []
+
+    func requestAccessAndFetch() {
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
+            guard status == .authorized || status == .limited else { return }
+
+            let options = PHFetchOptions()
+            options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            options.fetchLimit = 50
+
+            let result = PHAsset.fetchAssets(with: .image, options: options)
+            var fetchedAssets: [PHAsset] = []
+            result.enumerateObjects { asset, _, _ in
+                fetchedAssets.append(asset)
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                self?.assets = fetchedAssets
+            }
+        }
+    }
+}

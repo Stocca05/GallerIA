@@ -1,0 +1,18 @@
+name: GallerIA
+options:
+  bundleIdPrefix: com.stocca
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  GallerIA:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIA
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Necessario per analizzare le foto ed estrarre la tua estetica."
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: "5.0"
