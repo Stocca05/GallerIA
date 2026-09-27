@@ -6,33 +6,52 @@ struct GalleryView: View {
     let classifier: AestheticClassifier
     let mlManager: MLManager
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var scoredImages: [(UIImage, Float)] = []
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))]) {
-                ForEach(scoredImages.indices, id: \.self) { index in
-                    let (image, score) = scoredImages[index]
+        NavigationStack {
+            Group {
+                if scoredImages.isEmpty {
+                    ProgressView("Analisi estetica neurale in corso...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))]) {
+                            ForEach(scoredImages.indices, id: \.self) { index in
+                                let (image, score) = scoredImages[index]
 
-                    Color.clear
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
+                                Color.clear
+                                    .aspectRatio(1, contentMode: .fit)
+                                    .overlay {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    }
+                                    .clipped()
+                                    .overlay(alignment: .bottomTrailing) {
+                                        Text("\(Int(score * 100))%")
+                                            .font(.caption2.bold())
+                                            .foregroundColor(.white)
+                                            .padding(4)
+                                            .background(.black.opacity(0.65), in: Capsule())
+                                            .padding(4)
+                                    }
+                            }
                         }
-                        .clipped()
-                        .overlay(alignment: .bottomTrailing) {
-                            Text("\(Int(score * 100))%")
-                                .font(.caption2.bold())
-                                .foregroundColor(.white)
-                                .padding(4)
-                                .background(.black.opacity(0.65), in: Capsule())
-                                .padding(4)
-                        }
+                        .padding()
+                    }
                 }
             }
-            .padding()
+            .navigationTitle("La tua Estetica")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                }
+            }
         }
         .task {
             let loadingTask = Task.detached(priority: .userInitiated) { [classifier, mlManager] in
