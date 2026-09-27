@@ -28,6 +28,13 @@ struct ContentView: View {
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
                     }
+
+                    Button("Reset Modello Neurale") {
+                        viewModel.resetBrain()
+                    }
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 24)
                 }
                 .foregroundColor(.white)
                 .padding()

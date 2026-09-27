@@ -45,6 +45,13 @@ class GallerIAViewModel: ObservableObject {
         }
     }
 
+    func resetBrain() {
+        classifier.reset()
+        isFinished = false
+        currentImage = nil
+        photoManager.requestAccessAndFetch()
+    }
+
     func rate(liked: Bool) {
         if let currentEmbedding = currentEmbedding {
             let label: Float = liked ? 1.0 : 0.0

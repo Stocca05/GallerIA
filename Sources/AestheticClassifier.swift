@@ -14,6 +14,13 @@ class AestheticClassifier {
         UserDefaults.standard.set(bias, forKey: "gallerIA_bias")
     }
 
+    func reset() {
+        weights = nil
+        bias = 0.0
+        UserDefaults.standard.removeObject(forKey: "gallerIA_weights")
+        UserDefaults.standard.removeObject(forKey: "gallerIA_bias")
+    }
+
     func predict(embedding: [Float]) -> Float {
         if weights == nil {
             weights = [Float](repeating: 0.0, count: embedding.count)
