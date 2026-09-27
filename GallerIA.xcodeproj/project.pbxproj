@@ -13,6 +13,7 @@
 		AEC3CD29389AA145684C75C7 /* MLManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EB027A356EADCCCC32154D3 /* MLManager.swift */; };
 		B6366F96420E17FAAAE59C58 /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */; };
 		C5FF711BF96F553868DC8DDE /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC9B13492DC473CF4C8FCBC /* CardView.swift */; };
+		E928EAD7A9AE1A7193843BF4 /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A07273884542E87AD45813C5 /* GalleryView.swift */; };
 		F1B37584A1BB5D71F11B151A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B69886006F0C6C1BA65559D /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
@@ -24,6 +25,7 @@
 		81E44C9441BCBBD70C596436 /* AestheticClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AestheticClassifier.swift; sourceTree = "<group>"; };
 		89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIAApp.swift; sourceTree = "<group>"; };
 		8EEF8C988916641D23B1FB79 /* GallerIAViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIAViewModel.swift; sourceTree = "<group>"; };
+		A07273884542E87AD45813C5 /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		BAB4B0EF7E31AE932089A97D /* GallerIA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GallerIA.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -36,6 +38,7 @@
 				7B69886006F0C6C1BA65559D /* ContentView.swift */,
 				89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */,
 				8EEF8C988916641D23B1FB79 /* GallerIAViewModel.swift */,
+				A07273884542E87AD45813C5 /* GalleryView.swift */,
 				2EB027A356EADCCCC32154D3 /* MLManager.swift */,
 				30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */,
 			);
@@ -118,6 +121,7 @@
 				F1B37584A1BB5D71F11B151A /* ContentView.swift in Sources */,
 				3E8111C943C9A42DDF10903F /* GallerIAApp.swift in Sources */,
 				7EE73E0FA80F79F1957A06DE /* GallerIAViewModel.swift in Sources */,
+				E928EAD7A9AE1A7193843BF4 /* GalleryView.swift in Sources */,
 				AEC3CD29389AA145684C75C7 /* MLManager.swift in Sources */,
 				B6366F96420E17FAAAE59C58 /* PhotoManager.swift in Sources */,
 			);

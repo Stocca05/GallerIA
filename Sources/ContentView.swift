@@ -4,6 +4,7 @@ import Combine
 
 struct ContentView: View {
     @StateObject var viewModel = GallerIAViewModel()
+    @State private var showGallery = false
 
     var body: some View {
         if viewModel.isFinished {
@@ -18,7 +19,7 @@ struct ContentView: View {
                     Text("Il modello neurale ora conosce i tuoi gusti.")
                         .multilineTextAlignment(.center)
 
-                    Button(action: {}) {
+                    Button(action: { showGallery = true }) {
                         Text("Vedi la Galleria")
                             .bold()
                             .padding(.horizontal, 36)
@@ -29,6 +30,9 @@ struct ContentView: View {
                 }
                 .foregroundColor(.white)
                 .padding()
+            }
+            .fullScreenCover(isPresented: $showGallery) {
+                GalleryView(classifier: viewModel.classifier, mlManager: viewModel.mlManager)
             }
         } else if let currentImage = viewModel.currentImage {
             ZStack {
