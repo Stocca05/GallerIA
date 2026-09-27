@@ -5,6 +5,7 @@ import Combine
 struct ContentView: View {
     @StateObject var viewModel = GallerIAViewModel()
     @State private var showGallery = false
+    @State private var accessDenied = false
 
     var body: some View {
         if viewModel.isFinished {
@@ -73,19 +74,32 @@ struct ContentView: View {
                         .foregroundColor(.white)
                         .shadow(color: .purple, radius: 20)
 
-                    Button {
-                        viewModel.photoManager.requestAccessAndFetch()
-                    } label: {
-                        Text("Inizia Scansione")
-                            .foregroundColor(.white)
+                    if accessDenied {
+                        Text("Accesso alle foto negato. Vai in Impostazioni.")
+                            .foregroundColor(.red)
                             .bold()
-                            .padding(.horizontal, 36)
-                            .padding(.vertical, 20)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Button {
+                            viewModel.photoManager.requestAccessAndFetch()
+                        } label: {
+                            Text("Inizia Scansione")
+                                .foregroundColor(.white)
+                                .bold()
+                                .padding(.horizontal, 36)
+                                .padding(.vertical, 20)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
                 .padding()
+            }
+            .onReceive(
+                viewModel.photoManager.$accessDenied
+                    .receive(on: DispatchQueue.main)
+            ) { accessDenied in
+                self.accessDenied = accessDenied
             }
             .onReceive(
                 viewModel.photoManager.$assets
