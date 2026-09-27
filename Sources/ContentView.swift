@@ -7,14 +7,29 @@ struct ContentView: View {
 
     var body: some View {
         if viewModel.isFinished {
-            VStack {
-                Text("Abbiamo imparato la tua estetica! 🎉")
-                    .font(.title)
-                    .multilineTextAlignment(.center)
-                Text("Il modello neurale ora conosce i tuoi gusti.")
-                    .foregroundColor(.secondary)
+            ZStack {
+                LinearGradient(colors: [.purple, .black, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 24) {
+                    Text("Abbiamo imparato la tua estetica! 🎉")
+                        .font(.title)
+                        .multilineTextAlignment(.center)
+                    Text("Il modello neurale ora conosce i tuoi gusti.")
+                        .multilineTextAlignment(.center)
+
+                    Button(action: {}) {
+                        Text("Vedi la Galleria")
+                            .bold()
+                            .padding(.horizontal, 36)
+                            .padding(.vertical, 20)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                    }
+                }
+                .foregroundColor(.white)
+                .padding()
             }
-            .padding()
         } else if let currentImage = viewModel.currentImage {
             ZStack {
                 Image(uiImage: currentImage)
@@ -26,8 +41,12 @@ struct ContentView: View {
 
                 VStack {
                     Text("Score: \(Int(viewModel.currentScore * 100))%")
-                        .font(.largeTitle)
+                        .font(.title.bold())
                         .foregroundColor(viewModel.currentScore >= 0.5 ? .green : .red)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color.black.opacity(0.45))
+                        .cornerRadius(16)
 
                     CardView(image: currentImage, score: viewModel.currentScore) { liked in
                         let haptic = UIImpactFeedbackGenerator(style: .medium)
@@ -40,12 +59,29 @@ struct ContentView: View {
             }
             .animation(.easeInOut, value: viewModel.currentImage)
         } else {
-            VStack {
-                Text("GallerIA")
+            ZStack {
+                LinearGradient(colors: [.purple, .black, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
 
-                Button("Inizia Scansione") {
-                    viewModel.photoManager.requestAccessAndFetch()
+                VStack(spacing: 36) {
+                    Text("GallerIA")
+                        .font(.system(size: 50, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .purple, radius: 20)
+
+                    Button {
+                        viewModel.photoManager.requestAccessAndFetch()
+                    } label: {
+                        Text("Inizia Scansione")
+                            .foregroundColor(.white)
+                            .bold()
+                            .padding(.horizontal, 36)
+                            .padding(.vertical, 20)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                    }
                 }
+                .padding()
             }
             .onReceive(
                 viewModel.photoManager.$assets
