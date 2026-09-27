@@ -14,8 +14,13 @@ struct GalleryView: View {
         NavigationStack {
             Group {
                 if scoredImages.isEmpty {
-                    ProgressView("Analisi estetica neurale in corso...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack {
+                        ProgressView()
+                        Text("Analisi estetica neurale in corso...")
+                            .font(.headline)
+                            .foregroundColor(.purple)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))]) {
@@ -31,12 +36,18 @@ struct GalleryView: View {
                                     }
                                     .clipped()
                                     .overlay(alignment: .bottomTrailing) {
-                                        Text("\(Int(score * 100))%")
-                                            .font(.caption2.bold())
-                                            .foregroundColor(.white)
-                                            .padding(4)
-                                            .background(.black.opacity(0.65), in: Capsule())
-                                            .padding(4)
+                                        HStack(spacing: 4) {
+                                            if score >= 0.8 {
+                                                Image(systemName: "star.fill")
+                                                    .foregroundColor(.yellow)
+                                            }
+                                            Text("\(Int(score * 100))%")
+                                                .foregroundColor(.white)
+                                        }
+                                        .font(.caption2.bold())
+                                        .padding(4)
+                                        .background(.black.opacity(0.65), in: Capsule())
+                                        .padding(4)
                                     }
                             }
                         }
@@ -44,7 +55,11 @@ struct GalleryView: View {
                     }
                 }
             }
+            .background(Color.black.ignoresSafeArea())
             .navigationTitle("La tua Estetica")
+            .toolbarBackground(.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Chiudi") {
