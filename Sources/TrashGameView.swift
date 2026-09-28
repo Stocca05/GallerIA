@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import UIKit
 
 struct TrashGameView: View {
     @State var uglyAssets: [ScoredAsset]
@@ -24,6 +25,9 @@ struct TrashGameView: View {
 
                     CardView(image: current.image, score: current.score, isCleanup: true) { swipedRight in
                         guard !isDeleting else { return }
+
+                        let haptic = UINotificationFeedbackGenerator()
+                        haptic.notificationOccurred(swipedRight ? .warning : .success)
 
                         if swipedRight {
                             isDeleting = true
