@@ -19,6 +19,14 @@ struct SettingsView: View {
                         .accessibilityLabel("Soglia estetica")
                 }
 
+                Section("Premium") {
+                    NavigationLink {
+                        ProView()
+                    } label: {
+                        Label("GallerIA PRO", systemImage: "crown.fill")
+                    }
+                }
+
                 Section("Azioni di Pericolo") {
                     Button("Formatta Cervello", role: .destructive) {
                         classifier.reset()

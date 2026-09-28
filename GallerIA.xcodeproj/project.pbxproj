@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC3600000000000000000001 /* ProView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC3600000000000000000002 /* ProView.swift */; };
 		1A41644021B61114AA857C3A /* AestheticClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E44C9441BCBBD70C596436 /* AestheticClassifier.swift */; };
 		2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */; };
 		3E8111C943C9A42DDF10903F /* GallerIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */; };
@@ -21,6 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AC3600000000000000000002 /* ProView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProView.swift; sourceTree = "<group>"; };
 		116AD407A174AAE33B83D9B0 /* TrashGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashGameView.swift; sourceTree = "<group>"; };
 		1FC9B13492DC473CF4C8FCBC /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
 		2EB027A356EADCCCC32154D3 /* MLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLManager.swift; sourceTree = "<group>"; };
@@ -48,6 +50,7 @@
 				2EB027A356EADCCCC32154D3 /* MLManager.swift */,
 				30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */,
 				E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */,
+				AC3600000000000000000002 /* ProView.swift */,
 				85F8E3D5BBAB52E181755F29 /* StatsView.swift */,
 				116AD407A174AAE33B83D9B0 /* TrashGameView.swift */,
 			);
@@ -134,6 +137,7 @@
 				AEC3CD29389AA145684C75C7 /* MLManager.swift in Sources */,
 				B6366F96420E17FAAAE59C58 /* PhotoManager.swift in Sources */,
 				2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */,
+				AC3600000000000000000001 /* ProView.swift in Sources */,
 				78CC1C0E6EF6813F1636D51B /* StatsView.swift in Sources */,
 				44CB2D3D72EBCC3384286273 /* TrashGameView.swift in Sources */,
 			);

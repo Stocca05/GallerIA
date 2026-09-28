@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import StoreKit
 
 @MainActor
 class GallerIAViewModel: ObservableObject {
@@ -11,6 +12,7 @@ class GallerIAViewModel: ObservableObject {
     let mlManager = MLManager()
     let classifier = AestheticClassifier()
     var currentEmbedding: [Float]? = nil
+    var photosRated: Int = 0
 
     private var imageRequestID = UUID()
 
@@ -72,6 +74,15 @@ class GallerIAViewModel: ObservableObject {
     }
 
     func rate(liked: Bool) {
+        photosRated += 1
+        if photosRated == 20 {
+            if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                SKStoreReviewController.requestReview(in: scene)
+            } else {
+                SKStoreReviewController.requestReview()
+            }
+        }
+
         if let currentEmbedding = currentEmbedding {
             let label: Float = liked ? 1.0 : 0.0
             classifier.update(embedding: currentEmbedding, label: label)
