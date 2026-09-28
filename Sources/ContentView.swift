@@ -81,6 +81,25 @@ struct ContentView: View {
                         .foregroundColor(.white)
                         .shadow(color: .purple, radius: 20)
 
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "hand.draw.fill")
+                            Text("Fai swipe a destra per le foto che ami, a sinistra per quelle che odi.")
+                        }
+
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                            Text("Il modello neurale imparerà i tuoi gusti.")
+                        }
+
+                        HStack {
+                            Image(systemName: "sparkles")
+                            Text("Scopri la tua galleria fotografica perfetta.")
+                        }
+                    }
+                    .foregroundColor(.white.opacity(0.9))
+                    .font(.callout)
+
                     if accessDenied {
                         Text("Accesso alle foto negato. Vai in Impostazioni.")
                             .foregroundColor(.red)
