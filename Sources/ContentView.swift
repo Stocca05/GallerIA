@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject var viewModel = GallerIAViewModel()
     @State private var showGallery = false
     @State private var accessDenied = false
+    @State private var showResetAlert = false
 
     var body: some View {
         if viewModel.isFinished {
@@ -30,7 +31,7 @@ struct ContentView: View {
                     }
 
                     Button("Reset Modello Neurale") {
-                        viewModel.resetBrain()
+                        showResetAlert = true
                     }
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -41,6 +42,14 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showGallery) {
                 GalleryView(classifier: viewModel.classifier, mlManager: viewModel.mlManager)
+            }
+            .alert("Sei sicuro?", isPresented: $showResetAlert) {
+                Button("Annulla", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    viewModel.resetBrain()
+                }
+            } message: {
+                Text("Perderai tutto l'apprendimento neurale sui tuoi gusti estetici.")
             }
         } else if let currentImage = viewModel.currentImage {
             ZStack {
