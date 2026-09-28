@@ -20,6 +20,14 @@ class AestheticClassifier {
     }
 
     init() {
+        if let icloudData = NSUbiquitousKeyValueStore.default.data(forKey: "gallerIA_model_sync"),
+           let decoded = try? JSONDecoder().decode(ClassifierData.self, from: icloudData) {
+            weights = decoded.weights
+            bias = decoded.bias
+            iterations = decoded.iterations
+            return
+        }
+
         let url = getFileURL()
         if let data = try? Data(contentsOf: url),
            let decoded = try? JSONDecoder().decode(ClassifierData.self, from: data) {
@@ -32,6 +40,8 @@ class AestheticClassifier {
     func save() {
         let dataToSave = ClassifierData(weights: weights, bias: bias, iterations: iterations)
         if let encoded = try? JSONEncoder().encode(dataToSave) {
+            NSUbiquitousKeyValueStore.default.set(encoded, forKey: "gallerIA_model_sync")
+            NSUbiquitousKeyValueStore.default.synchronize()
             try? encoded.write(to: getFileURL())
         }
     }
