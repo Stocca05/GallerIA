@@ -10,6 +10,7 @@ class GallerIAViewModel: ObservableObject {
 
     let photoManager = PhotoManager()
     let mlManager = MLManager()
+    let embeddingCache = EmbeddingCache()
     let classifier = AestheticClassifier()
     var currentEmbedding: [Float]? = nil
     var photosRated: Int = 0
@@ -49,8 +50,18 @@ class GallerIAViewModel: ObservableObject {
                     self.currentImage = image
                     guard let cgImage = image?.cgImage else { return }
 
-                    let embedding = await Task.detached(priority: .userInitiated) { [mlManager = self.mlManager] in
-                        mlManager.extractEmbedding(from: cgImage)
+                    let embedding = await Task.detached(priority: .userInitiated) { () -> [Float]? in
+                        let mlManager = self.mlManager
+                        let embeddingCache = self.embeddingCache
+                        let id = asset.localIdentifier
+                        if let cached = embeddingCache.getEmbedding(for: id) {
+                            return cached
+                        }
+                        guard let extracted = mlManager.extractEmbedding(from: cgImage) else {
+                            return nil
+                        }
+                        embeddingCache.saveEmbedding(extracted, for: id)
+                        return extracted
                     }.value
 
                     // Ignore results if a swipe or reset occurred during extraction.
