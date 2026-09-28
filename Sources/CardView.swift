@@ -39,6 +39,7 @@ struct CardView: View {
                     }
                     .onEnded { value in
                         if offset.width > 100 {
+                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                             withAnimation(.easeOut(duration: 0.3)) {
                                 offset = CGSize(width: value.translation.width > 0 ? 500 : -500, height: 0)
                             }
@@ -46,6 +47,7 @@ struct CardView: View {
                                 onSwipe(true)
                             }
                         } else if offset.width < -100 {
+                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                             withAnimation(.easeOut(duration: 0.3)) {
                                 offset = CGSize(width: value.translation.width > 0 ? 500 : -500, height: 0)
                             }
@@ -53,6 +55,7 @@ struct CardView: View {
                                 onSwipe(false)
                             }
                         } else {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             withAnimation(.spring()) {
                                 offset = .zero
                             }

@@ -15,12 +15,13 @@ struct GalleryView: View {
     let mlManager: MLManager
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("aestheticThreshold") private var aestheticThreshold: Double = 0.5
 
     @State private var scoredAssets: [ScoredAsset] = []
     @State private var showTrashGame = false
 
     var body: some View {
-        let goodAssets = scoredAssets.filter { $0.score >= 0.5 }
+        let goodAssets = scoredAssets.filter { $0.score >= Float(aestheticThreshold) }
 
         NavigationStack {
             Group {
@@ -72,7 +73,7 @@ struct GalleryView: View {
                             .padding()
                         }
 
-                        Button("Minigioco Pulizia (\(scoredAssets.filter { $0.score < 0.5 }.count) foto brutte)") {
+                        Button("Minigioco Pulizia (\(scoredAssets.filter { $0.score < Float(aestheticThreshold) }.count) foto da scartare)") {
                             showTrashGame = true
                         }
                         .font(.headline)
@@ -100,7 +101,7 @@ struct GalleryView: View {
         }
         .sheet(isPresented: $showTrashGame) {
             TrashGameView(
-                uglyAssets: scoredAssets.filter { $0.score < 0.5 },
+                uglyAssets: scoredAssets.filter { $0.score < Float(aestheticThreshold) },
                 classifier: classifier
             )
         }

@@ -5,11 +5,37 @@ import Combine
 struct ContentView: View {
     @StateObject var viewModel = GallerIAViewModel()
     @State private var showGallery = false
+    @State private var showStats = false
     @State private var accessDenied = false
     @State private var showResetAlert = false
     @State private var isWaitingForInitialBatch = false
 
     var body: some View {
+        mainContent
+            .safeAreaInset(edge: .top) {
+                HStack {
+                    Spacer()
+                    Button {
+                        showStats = true
+                    } label: {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .accessibilityLabel("Statistiche neurali")
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .sheet(isPresented: $showStats) {
+                StatsView(classifier: viewModel.classifier)
+            }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
         if viewModel.isFinished {
             ZStack {
                 LinearGradient(colors: [.purple, .black, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
