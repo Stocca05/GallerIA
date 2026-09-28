@@ -8,6 +8,7 @@ struct TrashGameView: View {
 
     @Environment(\.dismiss) var dismiss
     @State private var isDeleting = false
+    @State private var assetsToDelete: [PHAsset] = []
 
     var body: some View {
         ZStack {
@@ -15,8 +16,35 @@ struct TrashGameView: View {
 
             VStack(spacing: 24) {
                 if uglyAssets.isEmpty {
-                    Text("Pulizia terminata!")
-                        .font(.title.bold())
+                    if !assetsToDelete.isEmpty {
+                        Text("Hai scartato \(assetsToDelete.count) foto")
+                            .font(.title.bold())
+                        
+                        Button {
+                            isDeleting = true
+                            PHPhotoLibrary.shared().performChanges({
+                                PHAssetChangeRequest.deleteAssets(assetsToDelete as NSArray)
+                            }) { success, _ in
+                                DispatchQueue.main.async {
+                                    if success {
+                                        assetsToDelete.removeAll()
+                                    }
+                                    isDeleting = false
+                                }
+                            }
+                        } label: {
+                            Text("Svuota Cestino")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.red)
+                                .cornerRadius(10)
+                        }
+                        .disabled(isDeleting)
+                    } else {
+                        Text("Pulizia terminata!")
+                            .font(.title.bold())
+                    }
                 } else {
                     let current = uglyAssets.first!
 
@@ -24,31 +52,19 @@ struct TrashGameView: View {
                         .multilineTextAlignment(.center)
 
                     CardView(image: current.image, score: current.score, isCleanup: true) { swipedRight in
-                        guard !isDeleting else { return }
-
                         let haptic = UINotificationFeedbackGenerator()
                         haptic.notificationOccurred(swipedRight ? .warning : .success)
 
                         if swipedRight {
-                            isDeleting = true
-                            PHPhotoLibrary.shared().performChanges({
-                                PHAssetChangeRequest.deleteAssets([current.asset] as NSArray)
-                            }) { success, _ in
-                                DispatchQueue.main.async {
-                                    if success {
-                                        classifier.update(embedding: current.embedding, label: 0.0)
-                                    }
-                                    uglyAssets.removeFirst()
-                                    isDeleting = false
-                                }
-                            }
+                            assetsToDelete.append(current.asset)
+                            classifier.update(embedding: current.embedding, label: 0.0)
+                            uglyAssets.removeFirst()
                         } else {
                             classifier.update(embedding: current.embedding, label: 1.0)
                             uglyAssets.removeFirst()
                         }
                     }
                     .id(current.id)
-                    .allowsHitTesting(!isDeleting)
                 }
 
                 Button("Chiudi") {

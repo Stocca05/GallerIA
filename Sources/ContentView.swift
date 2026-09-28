@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showGallery = false
     @State private var accessDenied = false
     @State private var showResetAlert = false
+    @State private var isWaitingForInitialBatch = false
 
     var body: some View {
         if viewModel.isFinished {
@@ -30,6 +31,21 @@ struct ContentView: View {
                             .clipShape(Capsule())
                     }
 
+                    Button {
+                        viewModel.photoManager.loadNextBatch()
+                        if !viewModel.photoManager.assets.isEmpty {
+                            viewModel.isFinished = false
+                            viewModel.loadNextPhoto()
+                        }
+                    } label: {
+                        Text("Continua ad addestrare")
+                            .bold()
+                            .padding(.horizontal, 36)
+                            .padding(.vertical, 20)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                    }
+
                     Button("Reset Modello Neurale") {
                         showResetAlert = true
                     }
@@ -46,6 +62,7 @@ struct ContentView: View {
             .alert("Sei sicuro?", isPresented: $showResetAlert) {
                 Button("Annulla", role: .cancel) {}
                 Button("Reset", role: .destructive) {
+                    isWaitingForInitialBatch = true
                     viewModel.resetBrain()
                 }
             } message: {
@@ -116,6 +133,7 @@ struct ContentView: View {
                             .multilineTextAlignment(.center)
                     } else {
                         Button {
+                            isWaitingForInitialBatch = true
                             viewModel.photoManager.requestAccessAndFetch()
                         } label: {
                             Text("Inizia Scansione")
@@ -141,6 +159,8 @@ struct ContentView: View {
                     .first(where: { !$0.isEmpty })
                     .receive(on: DispatchQueue.main)
             ) { _ in
+                guard isWaitingForInitialBatch else { return }
+                isWaitingForInitialBatch = false
                 viewModel.loadNextPhoto()
             }
         }

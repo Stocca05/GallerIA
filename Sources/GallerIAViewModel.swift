@@ -1,6 +1,7 @@
 import SwiftUI
 import Photos
 
+@MainActor
 class GallerIAViewModel: ObservableObject {
     @Published var currentImage: UIImage?
     @Published var currentScore: Float = 0.5
@@ -11,34 +12,49 @@ class GallerIAViewModel: ObservableObject {
     let classifier = AestheticClassifier()
     var currentEmbedding: [Float]? = nil
 
-    func loadNextPhoto() {
-        guard !photoManager.assets.isEmpty else {
-            DispatchQueue.main.async {
-                self.isFinished = true
-                self.currentImage = nil
-            }
-            return
-        }
+    private var imageRequestID = UUID()
 
-        let asset = photoManager.assets.removeFirst()
+    func loadNextPhoto() {
+        let requestID = UUID()
+        imageRequestID = requestID
         currentEmbedding = nil
         currentScore = 0.5
 
-        PHImageManager.default().requestImage(
-            for: asset,
-            targetSize: CGSize(width: 800, height: 800),
-            contentMode: .aspectFit,
-            options: nil
-        ) { [weak self] image, _ in
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.currentImage = image
-                self.currentEmbedding = nil
-                self.currentScore = 0.5
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let asset = await MainActor.run { [weak self] () -> PHAsset? in
+                guard let self, self.imageRequestID == requestID else { return nil }
+                guard !self.photoManager.assets.isEmpty else {
+                    self.isFinished = true
+                    self.currentImage = nil
+                    return nil
+                }
+                return self.photoManager.assets.removeFirst()
+            }
+            guard let asset else { return }
 
-                if let cgImage = image?.cgImage,
-                   let embedding = self.mlManager.extractEmbedding(from: cgImage) {
+            // Process only the final image, avoiding races with preview callbacks.
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            PHImageManager.default().requestImage(
+                for: asset,
+                targetSize: CGSize(width: 800, height: 800),
+                contentMode: .aspectFit,
+                options: options
+            ) { [weak self] image, info in
+                guard (info?[PHImageResultIsDegradedKey] as? Bool) != true else { return }
+                Task { @MainActor [weak self] in
+                    guard let self, self.imageRequestID == requestID else { return }
+                    self.currentImage = image
+                    guard let cgImage = image?.cgImage else { return }
+
+                    let embedding = await Task.detached(priority: .userInitiated) { [mlManager = self.mlManager] in
+                        mlManager.extractEmbedding(from: cgImage)
+                    }.value
+
+                    // Ignore results if a swipe or reset occurred during extraction.
+                    guard self.imageRequestID == requestID, let embedding else { return }
                     self.currentEmbedding = embedding
+                    // predict mutates weights; serialize it with update and reset.
                     self.currentScore = self.classifier.predict(embedding: embedding)
                 }
             }
@@ -46,6 +62,9 @@ class GallerIAViewModel: ObservableObject {
     }
 
     func resetBrain() {
+        imageRequestID = UUID()
+        currentEmbedding = nil
+        currentScore = 0.5
         classifier.reset()
         isFinished = false
         currentImage = nil

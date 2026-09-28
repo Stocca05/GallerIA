@@ -105,14 +105,14 @@ struct GalleryView: View {
             )
         }
         .task {
-            let loadingTask = Task.detached(priority: .userInitiated) { [classifier, mlManager] in
+            let loadingTask = Task.detached(priority: .userInitiated) { [classifier, mlManager] () -> [ScoredAsset] in
                 let fetchOptions = PHFetchOptions()
                 fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
                 fetchOptions.fetchLimit = 100
                 let assets = PHAsset.fetchAssets(with: .image, options: fetchOptions)
 
                 let options = PHImageRequestOptions()
-                options.isSynchronous = true
+                options.isSynchronous = false
                 options.deliveryMode = .highQualityFormat
                 options.resizeMode = .exact
 
@@ -122,28 +122,18 @@ struct GalleryView: View {
                 for index in 0..<assets.count {
                     guard !Task.isCancelled else { break }
 
-                    autoreleasepool {
-                        var thumbnail: UIImage?
-                        imageManager.requestImage(
-                            for: assets.object(at: index),
-                            targetSize: CGSize(width: 300, height: 300),
-                            contentMode: .aspectFit,
-                            options: options
-                        ) { image, _ in
-                            thumbnail = image
-                        }
+                    let image = await fetchImage(for: assets.object(at: index), with: imageManager, options: options)
+                    guard !Task.isCancelled else { break }
+                    guard let image,
+                          let cgImage = image.cgImage,
+                          let embedding = mlManager.extractEmbedding(from: cgImage) else { continue }
 
-                        guard let image = thumbnail,
-                              let cgImage = image.cgImage,
-                              let embedding = mlManager.extractEmbedding(from: cgImage) else { return }
-
-                        results.append(ScoredAsset(
-                            asset: assets.object(at: index),
-                            image: image,
-                            score: classifier.predict(embedding: embedding),
-                            embedding: embedding
-                        ))
-                    }
+                    results.append(ScoredAsset(
+                        asset: assets.object(at: index),
+                        image: image,
+                        score: classifier.predict(embedding: embedding),
+                        embedding: embedding
+                    ))
                 }
 
                 return results.sorted { $0.score > $1.score }
@@ -157,6 +147,19 @@ struct GalleryView: View {
 
             guard !Task.isCancelled else { return }
             scoredAssets = loadedAssets
+        }
+    }
+}
+
+private func fetchImage(for asset: PHAsset, with manager: PHImageManager, options: PHImageRequestOptions) async -> UIImage? {
+    await withCheckedContinuation { continuation in
+        manager.requestImage(
+            for: asset,
+            targetSize: CGSize(width: 300, height: 300),
+            contentMode: .aspectFit,
+            options: options
+        ) { image, _ in
+            continuation.resume(returning: image)
         }
     }
 }

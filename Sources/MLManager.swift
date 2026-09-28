@@ -1,7 +1,7 @@
 import Vision
 import CoreGraphics
 
-class MLManager {
+final class MLManager: Sendable {
     func extractEmbedding(from cgImage: CGImage) -> [Float]? {
         let request = VNGenerateImageFeaturePrintRequest()
         request.imageCropAndScaleOption = .scaleFill

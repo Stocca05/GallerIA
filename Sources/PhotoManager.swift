@@ -1,9 +1,12 @@
 import Photos
 import SwiftUI
 
+@MainActor
 class PhotoManager: ObservableObject {
     @Published var assets: [PHAsset] = []
     @Published var accessDenied = false
+    private var allAssetsResult: PHFetchResult<PHAsset>?
+    private var currentIndex = 0
 
     func requestAccessAndFetch() {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
@@ -15,17 +18,24 @@ class PhotoManager: ObservableObject {
 
             let options = PHFetchOptions()
             options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-            options.fetchLimit = 50
 
             let result = PHAsset.fetchAssets(with: .image, options: options)
-            var fetchedAssets: [PHAsset] = []
-            result.enumerateObjects { asset, _, _ in
-                fetchedAssets.append(asset)
-            }
-
             DispatchQueue.main.async { [weak self] in
-                self?.assets = fetchedAssets
+                guard let self else { return }
+                self.allAssetsResult = result
+                self.currentIndex = 0
+                self.assets = []
+                self.loadNextBatch()
             }
         }
+    }
+
+    func loadNextBatch() {
+        guard let allAssetsResult, currentIndex < allAssetsResult.count else { return }
+
+        let endIndex = min(currentIndex + 50, allAssetsResult.count)
+        let batch = (currentIndex..<endIndex).map { allAssetsResult.object(at: $0) }
+        currentIndex = endIndex
+        assets = batch
     }
 }

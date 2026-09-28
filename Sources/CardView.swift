@@ -37,11 +37,21 @@ struct CardView: View {
                     .onChanged { value in
                         offset = value.translation
                     }
-                    .onEnded { _ in
+                    .onEnded { value in
                         if offset.width > 100 {
-                            onSwipe(true)
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                offset = CGSize(width: value.translation.width > 0 ? 500 : -500, height: 0)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                onSwipe(true)
+                            }
                         } else if offset.width < -100 {
-                            onSwipe(false)
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                offset = CGSize(width: value.translation.width > 0 ? 500 : -500, height: 0)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                onSwipe(false)
+                            }
                         } else {
                             withAnimation(.spring()) {
                                 offset = .zero
