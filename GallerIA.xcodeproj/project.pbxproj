@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1A41644021B61114AA857C3A /* AestheticClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E44C9441BCBBD70C596436 /* AestheticClassifier.swift */; };
+		2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */; };
 		3E8111C943C9A42DDF10903F /* GallerIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */; };
 		44CB2D3D72EBCC3384286273 /* TrashGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116AD407A174AAE33B83D9B0 /* TrashGameView.swift */; };
 		78CC1C0E6EF6813F1636D51B /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F8E3D5BBAB52E181755F29 /* StatsView.swift */; };
@@ -31,6 +32,7 @@
 		8EEF8C988916641D23B1FB79 /* GallerIAViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIAViewModel.swift; sourceTree = "<group>"; };
 		A07273884542E87AD45813C5 /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		BAB4B0EF7E31AE932089A97D /* GallerIA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GallerIA.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -45,6 +47,7 @@
 				A07273884542E87AD45813C5 /* GalleryView.swift */,
 				2EB027A356EADCCCC32154D3 /* MLManager.swift */,
 				30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */,
+				E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */,
 				85F8E3D5BBAB52E181755F29 /* StatsView.swift */,
 				116AD407A174AAE33B83D9B0 /* TrashGameView.swift */,
 			);
@@ -130,6 +133,7 @@
 				E928EAD7A9AE1A7193843BF4 /* GalleryView.swift in Sources */,
 				AEC3CD29389AA145684C75C7 /* MLManager.swift in Sources */,
 				B6366F96420E17FAAAE59C58 /* PhotoManager.swift in Sources */,
+				2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */,
 				78CC1C0E6EF6813F1636D51B /* StatsView.swift in Sources */,
 				44CB2D3D72EBCC3384286273 /* TrashGameView.swift in Sources */,
 			);

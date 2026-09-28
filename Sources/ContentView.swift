@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject var viewModel = GallerIAViewModel()
     @State private var showGallery = false
     @State private var showStats = false
+    @State private var showSettings = false
     @State private var accessDenied = false
     @State private var showResetAlert = false
     @State private var isWaitingForInitialBatch = false
@@ -14,7 +15,16 @@ struct ContentView: View {
         mainContent
             .safeAreaInset(edge: .top) {
                 HStack {
-                    Spacer()
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .accessibilityLabel("Impostazioni")
                     Button {
                         showStats = true
                     } label: {
@@ -25,12 +35,16 @@ struct ContentView: View {
                             .background(.ultraThinMaterial, in: Circle())
                     }
                     .accessibilityLabel("Statistiche neurali")
+                    Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
             }
             .sheet(isPresented: $showStats) {
                 StatsView(classifier: viewModel.classifier)
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(classifier: viewModel.classifier)
             }
     }
 

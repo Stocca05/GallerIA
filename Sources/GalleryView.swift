@@ -58,14 +58,15 @@ struct GalleryView: View {
                                                     if score >= 0.8 {
                                                         Image(systemName: "star.fill")
                                                             .foregroundColor(.yellow)
+                                                            .shadow(color: .yellow, radius: 2)
                                                     }
                                                     Text("\(Int(score * 100))%")
                                                         .foregroundColor(.white)
                                                 }
                                                 .font(.caption2.bold())
-                                                .padding(4)
-                                                .background(.black.opacity(0.65), in: Capsule())
-                                                .padding(4)
+                                                .padding(6)
+                                                .background(.ultraThinMaterial, in: Capsule())
+                                                .padding(6)
                                             }
                                     }
                                 }
