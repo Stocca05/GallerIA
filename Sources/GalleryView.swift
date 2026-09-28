@@ -27,28 +27,33 @@ struct GalleryView: View {
                             ForEach(scoredImages.indices, id: \.self) { index in
                                 let (image, score) = scoredImages[index]
 
-                                Color.clear
-                                    .aspectRatio(1, contentMode: .fit)
-                                    .overlay {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFill()
-                                    }
-                                    .clipped()
-                                    .overlay(alignment: .bottomTrailing) {
-                                        HStack(spacing: 4) {
-                                            if score >= 0.8 {
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(.yellow)
-                                            }
-                                            Text("\(Int(score * 100))%")
-                                                .foregroundColor(.white)
+                                ShareLink(
+                                    item: Image(uiImage: image),
+                                    preview: SharePreview("Scelto dall'IA", image: Image(uiImage: image))
+                                ) {
+                                    Color.clear
+                                        .aspectRatio(1, contentMode: .fit)
+                                        .overlay {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFill()
                                         }
-                                        .font(.caption2.bold())
-                                        .padding(4)
-                                        .background(.black.opacity(0.65), in: Capsule())
-                                        .padding(4)
-                                    }
+                                        .clipped()
+                                        .overlay(alignment: .bottomTrailing) {
+                                            HStack(spacing: 4) {
+                                                if score >= 0.8 {
+                                                    Image(systemName: "star.fill")
+                                                        .foregroundColor(.yellow)
+                                                }
+                                                Text("\(Int(score * 100))%")
+                                                    .foregroundColor(.white)
+                                            }
+                                            .font(.caption2.bold())
+                                            .padding(4)
+                                            .background(.black.opacity(0.65), in: Capsule())
+                                            .padding(4)
+                                        }
+                                }
                             }
                         }
                         .padding()
