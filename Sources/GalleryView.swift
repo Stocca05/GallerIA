@@ -17,6 +17,7 @@ struct GalleryView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var scoredAssets: [ScoredAsset] = []
+    @State private var showTrashGame = false
 
     var body: some View {
         let goodAssets = scoredAssets.filter { $0.score >= 0.5 }
@@ -72,6 +73,7 @@ struct GalleryView: View {
                         }
 
                         Button("Minigioco Pulizia (\(scoredAssets.filter { $0.score < 0.5 }.count) foto brutte)") {
+                            showTrashGame = true
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -95,6 +97,12 @@ struct GalleryView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showTrashGame) {
+            TrashGameView(
+                uglyAssets: scoredAssets.filter { $0.score < 0.5 },
+                classifier: classifier
+            )
         }
         .task {
             let loadingTask = Task.detached(priority: .userInitiated) { [classifier, mlManager] in

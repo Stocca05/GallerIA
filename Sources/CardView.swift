@@ -4,6 +4,7 @@ import UIKit
 struct CardView: View {
     let image: UIImage
     let score: Float
+    var isCleanup = false
     let onSwipe: (Bool) -> Void
 
     @State private var offset: CGSize = .zero
@@ -17,12 +18,14 @@ struct CardView: View {
             .shadow(radius: 10)
             .overlay(alignment: .topLeading) {
                 if offset.width != 0 {
-                    Text(offset.width > 0 ? "BELLA" : "BRUTTA")
+                    Text(isCleanup
+                         ? (offset.width > 0 ? "ELIMINA" : "SALVA")
+                         : (offset.width > 0 ? "BELLA" : "BRUTTA"))
                         .font(.title2.bold())
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(offset.width > 0 ? Color.green : Color.red)
+                        .background((offset.width > 0) != isCleanup ? Color.green : Color.red)
                         .clipShape(Capsule())
                         .opacity(min(Double(abs(offset.width) / 100), 1))
                         .padding(20)
