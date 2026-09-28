@@ -2,18 +2,28 @@ import SwiftUI
 import Photos
 import UIKit
 
+struct ScoredAsset: Identifiable {
+    let id = UUID()
+    let asset: PHAsset
+    let image: UIImage
+    let score: Float
+    let embedding: [Float]
+}
+
 struct GalleryView: View {
     let classifier: AestheticClassifier
     let mlManager: MLManager
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var scoredImages: [(UIImage, Float)] = []
+    @State private var scoredAssets: [ScoredAsset] = []
 
     var body: some View {
+        let goodAssets = scoredAssets.filter { $0.score >= 0.5 }
+
         NavigationStack {
             Group {
-                if scoredImages.isEmpty {
+                if scoredAssets.isEmpty {
                     VStack {
                         ProgressView()
                         Text("Analisi estetica neurale in corso...")
@@ -22,41 +32,54 @@ struct GalleryView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))]) {
-                            ForEach(scoredImages.indices, id: \.self) { index in
-                                let (image, score) = scoredImages[index]
+                    VStack {
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))]) {
+                                ForEach(goodAssets) { scoredAsset in
+                                    let image = scoredAsset.image
+                                    let score = scoredAsset.score
 
-                                ShareLink(
-                                    item: Image(uiImage: image),
-                                    preview: SharePreview("Scelto dall'IA", image: Image(uiImage: image))
-                                ) {
-                                    Color.clear
-                                        .aspectRatio(1, contentMode: .fit)
-                                        .overlay {
-                                            Image(uiImage: image)
-                                                .resizable()
-                                                .scaledToFill()
-                                        }
-                                        .clipped()
-                                        .overlay(alignment: .bottomTrailing) {
-                                            HStack(spacing: 4) {
-                                                if score >= 0.8 {
-                                                    Image(systemName: "star.fill")
-                                                        .foregroundColor(.yellow)
-                                                }
-                                                Text("\(Int(score * 100))%")
-                                                    .foregroundColor(.white)
+                                    ShareLink(
+                                        item: Image(uiImage: image),
+                                        preview: SharePreview("Scelto dall'IA", image: Image(uiImage: image))
+                                    ) {
+                                        Color.clear
+                                            .aspectRatio(1, contentMode: .fit)
+                                            .overlay {
+                                                Image(uiImage: image)
+                                                    .resizable()
+                                                    .scaledToFill()
                                             }
-                                            .font(.caption2.bold())
-                                            .padding(4)
-                                            .background(.black.opacity(0.65), in: Capsule())
-                                            .padding(4)
-                                        }
+                                            .clipped()
+                                            .overlay(alignment: .bottomTrailing) {
+                                                HStack(spacing: 4) {
+                                                    if score >= 0.8 {
+                                                        Image(systemName: "star.fill")
+                                                            .foregroundColor(.yellow)
+                                                    }
+                                                    Text("\(Int(score * 100))%")
+                                                        .foregroundColor(.white)
+                                                }
+                                                .font(.caption2.bold())
+                                                .padding(4)
+                                                .background(.black.opacity(0.65), in: Capsule())
+                                                .padding(4)
+                                            }
+                                    }
                                 }
                             }
+                            .padding()
                         }
+
+                        Button("Minigioco Pulizia (\(scoredAssets.filter { $0.score < 0.5 }.count) foto brutte)") {
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
                         .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(.red, in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                        .padding(.bottom)
                     }
                 }
             }
@@ -86,7 +109,7 @@ struct GalleryView: View {
                 options.resizeMode = .exact
 
                 let imageManager = PHImageManager.default()
-                var results: [(UIImage, Float)] = []
+                var results: [ScoredAsset] = []
 
                 for index in 0..<assets.count {
                     guard !Task.isCancelled else { break }
@@ -106,21 +129,26 @@ struct GalleryView: View {
                               let cgImage = image.cgImage,
                               let embedding = mlManager.extractEmbedding(from: cgImage) else { return }
 
-                        results.append((image, classifier.predict(embedding: embedding)))
+                        results.append(ScoredAsset(
+                            asset: assets.object(at: index),
+                            image: image,
+                            score: classifier.predict(embedding: embedding),
+                            embedding: embedding
+                        ))
                     }
                 }
 
-                return results.sorted { $0.1 > $1.1 }
+                return results.sorted { $0.score > $1.score }
             }
 
-            let images = await withTaskCancellationHandler {
+            let loadedAssets = await withTaskCancellationHandler {
                 await loadingTask.value
             } onCancel: {
                 loadingTask.cancel()
             }
 
             guard !Task.isCancelled else { return }
-            scoredImages = images
+            scoredAssets = loadedAssets
         }
     }
 }
