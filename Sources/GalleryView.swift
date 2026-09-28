@@ -19,6 +19,7 @@ struct GalleryView: View {
 
     @State private var scoredAssets: [ScoredAsset] = []
     @State private var showTrashGame = false
+    @State private var selectedAsset: ScoredAsset?
 
     var body: some View {
         let goodAssets = scoredAssets.filter { $0.score >= Float(aestheticThreshold) }
@@ -41,7 +42,11 @@ struct GalleryView: View {
                                     let image = scoredAsset.image
                                     let score = scoredAsset.score
 
-                                    GalleryCellView(image: image, score: score)
+                                    Button {
+                                        selectedAsset = scoredAsset
+                                    } label: {
+                                        GalleryCellView(image: image, score: score)
+                                    }
                                 }
                             }
                             .padding()
@@ -78,6 +83,9 @@ struct GalleryView: View {
                 uglyAssets: scoredAssets.filter { $0.score < Float(aestheticThreshold) },
                 classifier: classifier
             )
+        }
+        .sheet(item: $selectedAsset) { asset in
+            PhotoDetailView(image: asset.image, score: asset.score)
         }
         .task {
             let loadingTask = Task.detached(priority: .userInitiated) { [classifier, mlManager] () -> [ScoredAsset] in

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1A41644021B61114AA857C3A /* AestheticClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E44C9441BCBBD70C596436 /* AestheticClassifier.swift */; };
 		2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */; };
+		352ED46F35C4EA86966A6D25 /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19232B8FD65C15636BC85FA4 /* PhotoDetailView.swift */; };
 		3E8111C943C9A42DDF10903F /* GallerIAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */; };
 		44CB2D3D72EBCC3384286273 /* TrashGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116AD407A174AAE33B83D9B0 /* TrashGameView.swift */; };
 		529DD7236D5D0FF5D3980B58 /* MainSwipingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7927EDF688E29B73FAF4BDCB /* MainSwipingView.swift */; };
@@ -28,6 +29,7 @@
 
 /* Begin PBXFileReference section */
 		116AD407A174AAE33B83D9B0 /* TrashGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashGameView.swift; sourceTree = "<group>"; };
+		19232B8FD65C15636BC85FA4 /* PhotoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
 		1FC9B13492DC473CF4C8FCBC /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
 		2EB027A356EADCCCC32154D3 /* MLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLManager.swift; sourceTree = "<group>"; };
 		30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoManager.swift; sourceTree = "<group>"; };
@@ -63,6 +65,7 @@
 				7927EDF688E29B73FAF4BDCB /* MainSwipingView.swift */,
 				2EB027A356EADCCCC32154D3 /* MLManager.swift */,
 				7E75827666C2DF1EA6ABBF92 /* OnboardingView.swift */,
+				19232B8FD65C15636BC85FA4 /* PhotoDetailView.swift */,
 				30774B9C0B2637CCBDF81D65 /* PhotoManager.swift */,
 				806B3F2BC362CEF880DFC8EC /* ProView.swift */,
 				E5A2CC2E6E5CB144BF80C8D6 /* SettingsView.swift */,
@@ -155,6 +158,7 @@
 				AEC3CD29389AA145684C75C7 /* MLManager.swift in Sources */,
 				529DD7236D5D0FF5D3980B58 /* MainSwipingView.swift in Sources */,
 				B587C170E5E096F2A0504524 /* OnboardingView.swift in Sources */,
+				352ED46F35C4EA86966A6D25 /* PhotoDetailView.swift in Sources */,
 				B6366F96420E17FAAAE59C58 /* PhotoManager.swift in Sources */,
 				A6B0C022E75236E7809124FB /* ProView.swift in Sources */,
 				2D55263B2DB08D8DEA4D1BB1 /* SettingsView.swift in Sources */,
