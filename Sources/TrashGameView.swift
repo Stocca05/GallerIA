@@ -13,6 +13,12 @@ struct TrashGameView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+            
+            Text("GallerIA\nCLEANUP")
+                .font(.system(size: 60, weight: .black, design: .rounded))
+                .foregroundColor(.white.opacity(0.05))
+                .multilineTextAlignment(.center)
+                .rotationEffect(.degrees(-15))
 
             VStack(spacing: 24) {
                 if uglyAssets.isEmpty {
