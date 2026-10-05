@@ -4,6 +4,8 @@ final class EmbeddingCache: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.stocca.GallerIA.embeddingCache", qos: .utility)
     private let fileURL: URL
     private var embeddings: [String: [Float]]
+    private var isDirty = false
+    private var saveWorkItem: DispatchWorkItem?
 
     init() {
         fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -21,14 +23,27 @@ final class EmbeddingCache: @unchecked Sendable {
     }
 
     func saveEmbedding(_ embedding: [Float], for id: String) {
-        queue.async {
-            self.embeddings[id] = embedding
+        queue.async { [self] in
+            embeddings[id] = embedding
+            isDirty = true
+            debouncedSave()
+        }
+    }
+
+    /// Debounce disk writes: wait 2 seconds of inactivity before writing.
+    private func debouncedSave() {
+        saveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [self] in
+            guard isDirty else { return }
             do {
-                let data = try JSONEncoder().encode(self.embeddings)
-                try data.write(to: self.fileURL, options: .atomic)
+                let data = try JSONEncoder().encode(embeddings)
+                try data.write(to: fileURL, options: .atomic)
+                isDirty = false
             } catch {
                 NSLog("EmbeddingCache: failed to save cache: %@", error.localizedDescription)
             }
         }
+        saveWorkItem = workItem
+        queue.asyncAfter(deadline: .now() + 2.0, execute: workItem)
     }
 }

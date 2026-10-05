@@ -1,137 +1,62 @@
 import SwiftUI
-import UIKit
-import Combine
+import Photos
 
 struct ContentView: View {
-    @StateObject var viewModel = GallerIAViewModel()
-    @State private var showGallery = false
-    @State private var showStats = false
-    @State private var showSettings = false
-    @State private var accessDenied = false
-    @State private var showResetAlert = false
-    @State private var isWaitingForInitialBatch = false
+    @StateObject private var viewModel = GallerIAViewModel()
+    @StateObject private var cleanupManager = CleanupManager(mlManager: MLManager())
+    @State private var selectedTab = 0
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        mainContent
-            .safeAreaInset(edge: .top) {
-                HStack {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    .accessibilityLabel("Impostazioni")
-                    Button {
-                        showStats = true
-                    } label: {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    .accessibilityLabel("Statistiche neurali")
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-            }
-            .sheet(isPresented: $showStats) {
-                StatsView(classifier: viewModel.classifier)
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView(classifier: viewModel.classifier)
-            }
+        TabView(selection: $selectedTab) {
+            NavigationStack {
+                DashboardView(viewModel: DashboardViewModel(classifier: viewModel.classifier, mlManager: viewModel.mlManager), cleanupManager: cleanupManager, photoManager: viewModel.photoManager, onTrain: { selectedTab = 1 })
+            }.tabItem { Label("La tua libreria", systemImage: "square.grid.2x2") }.tag(0)
+            NavigationStack {
+                TrainingTabView(viewModel: viewModel)
+                    .navigationTitle("Il tuo gusto")
+                    .navigationBarTitleDisplayMode(.inline)
+            }.tabItem { Label("Seleziona", systemImage: "heart") }.tag(1)
+            SettingsView(classifier: viewModel.classifier)
+                .tabItem { Label("Impostazioni", systemImage: "slider.horizontal.3") }.tag(2)
+        }
+        .tint(GalleryStyle.accent)
+        .preferredColorScheme(.dark)
+        .task { viewModel.photoManager.refreshIfAuthorized() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { viewModel.photoManager.refreshIfAuthorized() }
+            if phase == .background && !viewModel.classifier.batchEmbeddings.isEmpty { viewModel.performTraining() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("GallerIAReset"))) { _ in
+            viewModel.resetBrain()
+        }
+        .onReceive(viewModel.photoManager.$libraryRevision) { revision in
+            if revision > 0 { viewModel.reloadSession() }
+        }
     }
+}
 
-    @ViewBuilder
-    private var mainContent: some View {
-        if viewModel.isFinished {
-            ZStack {
-                LinearGradient(colors: [.purple, .black, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .ignoresSafeArea()
+struct TrainingTabView: View {
+    @ObservedObject var viewModel: GallerIAViewModel
 
-                VStack(spacing: 24) {
-                    Text("Abbiamo imparato la tua estetica! 🎉")
-                        .font(.title)
-                        .multilineTextAlignment(.center)
-                    Text("Il modello neurale ora conosce i tuoi gusti.")
-                        .multilineTextAlignment(.center)
-
-                    Button(action: { showGallery = true }) {
-                        Text("Vedi la Galleria")
-                            .bold()
-                            .padding(.horizontal, 36)
-                            .padding(.vertical, 20)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                    }
-
-                    Button {
-                        viewModel.photoManager.loadNextBatch()
-                        if !viewModel.photoManager.assets.isEmpty {
-                            viewModel.isFinished = false
-                            viewModel.loadNextPhoto()
-                        }
-                    } label: {
-                        Text("Continua ad addestrare")
-                            .bold()
-                            .padding(.horizontal, 36)
-                            .padding(.vertical, 20)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                    }
-
-                    Button("Reset Modello Neurale") {
-                        showResetAlert = true
-                    }
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 24)
+    var body: some View {
+        ZStack {
+            GalleryStyle.background.ignoresSafeArea()
+            if viewModel.isTraining {
+                ProgressView("La selezione si aggiorna…").tint(GalleryStyle.accent)
+            } else if !viewModel.cardQueue.isEmpty && viewModel.photoManager.isAuthorized {
+                let displayedID = viewModel.cardQueue.first?.id
+                MainSwipingView(deck: viewModel.cardQueue, photosRated: viewModel.photosRated,
+                    totalPhotos: viewModel.photoManager.totalPhotos, trashCount: 0,
+                    pendingTrainings: viewModel.pendingTrainings,
+                    rateAction: { viewModel.rate(liked: $0, expectedID: displayedID) }, undoAction: { viewModel.undoLast() },
+                    trainAction: { viewModel.performTraining() }, skipAction: { viewModel.skipCurrentPhoto() })
+            } else {
+                ContentUnavailableView {
+                    Label(viewModel.photoManager.isAuthorized ? "Tutto in ordine" : "Partiamo dalle tue foto", systemImage: "photo.stack")
+                } description: {
+                    Text(viewModel.photoManager.isAuthorized ? "Hai visto tutte le foto disponibili. Aggiungi altri ricordi alla libreria per continuare." : "Consenti l’accesso dalla schermata La tua libreria per creare la tua selezione.")
                 }
-                .foregroundColor(.white)
-                .padding()
-            }
-            .fullScreenCover(isPresented: $showGallery) {
-                GalleryView(classifier: viewModel.classifier, mlManager: viewModel.mlManager)
-            }
-            .alert("Sei sicuro?", isPresented: $showResetAlert) {
-                Button("Annulla", role: .cancel) {}
-                Button("Reset", role: .destructive) {
-                    isWaitingForInitialBatch = true
-                    viewModel.resetBrain()
-                }
-            } message: {
-                Text("Perderai tutto l'apprendimento neurale sui tuoi gusti estetici.")
-            }
-        } else if let currentImage = viewModel.currentImage {
-            MainSwipingView(currentImage: currentImage, currentScore: viewModel.currentScore) { liked in
-                viewModel.rate(liked: liked)
-            }
-            .animation(.easeInOut, value: viewModel.currentImage)
-        } else {
-            OnboardingView(accessDenied: accessDenied) {
-                isWaitingForInitialBatch = true
-                viewModel.photoManager.requestAccessAndFetch()
-            }
-            .onReceive(
-                viewModel.photoManager.$accessDenied
-                    .receive(on: DispatchQueue.main)
-            ) { accessDenied in
-                self.accessDenied = accessDenied
-            }
-            .onReceive(
-                viewModel.photoManager.$assets
-                    .first(where: { !$0.isEmpty })
-                    .receive(on: DispatchQueue.main)
-            ) { _ in
-                guard isWaitingForInitialBatch else { return }
-                isWaitingForInitialBatch = false
-                viewModel.loadNextPhoto()
             }
         }
     }

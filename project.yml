@@ -1,18 +1,93 @@
 name: GallerIA
 options:
   bundleIdPrefix: com.stocca
+  developmentLanguage: it
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
 targets:
   GallerIA:
     type: application
     platform: iOS
     sources:
       - path: Sources
+      - path: Resources
+    dependencies:
+      - target: GallerIAWidget
     settings:
       base:
+        DEVELOPMENT_TEAM: "8XAXB3WND5"
         PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIA
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Necessario per analizzare le foto ed estrarre la tua estetica."
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Necessario per proteggere i tuoi capolavori."
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  GallerIATests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: GallerIA
+    settings:
+      base:
+        DEVELOPMENT_TEAM: "8XAXB3WND5"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIATests
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+
+  GallerIAWidget:
+    type: app-extension
+    platform: iOS
+    info:
+      path: Widget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    sources:
+      - path: Widget
+    settings:
+      base:
+        DEVELOPMENT_TEAM: "8XAXB3WND5"
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIA.Widget
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+
+  GallerIAWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: Watch
+    settings:
+      base:
+        DEVELOPMENT_TEAM: "8XAXB3WND5"
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIA.watchkitapp
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        WATCHOS_DEPLOYMENT_TARGET: "9.0"
+
+
+
+  GallerIAUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: GallerIA
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIAUITests
         SWIFT_VERSION: "5.0"

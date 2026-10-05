@@ -1,71 +1,57 @@
 import SwiftUI
 
 struct ProView: View {
-    @State private var showingPurchaseInfo = false
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var proManager: ProManager
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
+        NavigationStack {
             ScrollView {
-                VStack(spacing: 32) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.yellow)
-                        .accessibilityHidden(true)
-
-                    Text("Sblocca GallerIA PRO")
-                        .font(.largeTitle.bold())
-                        .multilineTextAlignment(.center)
-                        .accessibilityAddTraits(.isHeader)
-
+                VStack(alignment: .leading, spacing: 26) {
+                    Label("GALLERIA PRO", systemImage: "sparkles").font(.caption.bold()).tracking(2)
+                        .foregroundStyle(GalleryStyle.accent)
+                    Text("Più spazio.\nMeno disordine.")
+                        .font(.system(size: 42, weight: .medium, design: .serif))
+                    Text("Gli strumenti per prenderti cura della tua libreria, in un unico acquisto.")
+                        .foregroundStyle(GalleryStyle.secondary)
                     VStack(alignment: .leading, spacing: 24) {
-                        benefit("Nessun limite di batch")
-                        benefit("Filtri avanzati")
-                        benefit("Sync iCloud")
+                        feature("square.on.square", "Confronta le foto simili", "Rivedi i gruppi suggeriti e scegli cosa tenere.")
+                        feature("viewfinder", "Metti ordine negli screenshot", "Seleziona quelli che non ti servono più.")
+                        feature("video", "Rivedi i video recenti", "Un posto solo per scegliere quali eliminare.")
+                    }.galleryPanel()
+                    Text("L’analisi considera fino a 500 foto recenti, 100 screenshot e 100 video. Ogni eliminazione richiede la tua conferma.")
+                        .font(.footnote).foregroundStyle(GalleryStyle.secondary)
+                    if let message = proManager.message {
+                        Text(message).font(.subheadline).foregroundStyle(GalleryStyle.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20))
-
                     Button {
-                        showingPurchaseInfo = true
+                        proManager.purchasePro()
                     } label: {
-                        Text("Acquista a 4.99$")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .foregroundStyle(.black)
-                            .background(.yellow, in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: 500)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 40)
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .foregroundStyle(.white)
-        .navigationTitle("GallerIA PRO")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.black, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .alert("Acquisto non ancora disponibile", isPresented: $showingPurchaseInfo) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("GallerIA PRO sarà disponibile prossimamente. Nessun addebito è stato effettuato.")
-        }
+                        if proManager.isLoading { ProgressView().tint(GalleryStyle.background) }
+                        else { Text(proManager.isPro ? "Pro è attivo" : proManager.product.map { "Sblocca Pro · \($0.displayPrice)" } ?? "Acquisto non disponibile") }
+                    }.buttonStyle(PrimaryButton())
+                        .disabled(proManager.product == nil || proManager.isLoading || proManager.isPro)
+                        .opacity(proManager.product == nil ? 0.5 : 1)
+                    HStack {
+                        Button("Ripristina acquisti") { proManager.restorePurchases() }
+                        Spacer()
+                        if proManager.product == nil { Button("Riprova") { Task { await proManager.loadProduct() } } }
+                    }.font(.footnote).disabled(proManager.isLoading)
+                    Text("Pagamento tramite il tuo account Apple. Acquisto singolo, senza rinnovo automatico.")
+                        .font(.caption).foregroundStyle(GalleryStyle.secondary)
+                }.padding(26).frame(maxWidth: 600).frame(maxWidth: .infinity)
+            }.background(GalleryStyle.background)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Chiudi") { dismiss() } } }
+        }.tint(GalleryStyle.accent).preferredColorScheme(.dark)
     }
 
-    private func benefit(_ title: String) -> some View {
-        HStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.yellow)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.headline)
+    private func feature(_ icon: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon).font(.title2).foregroundStyle(GalleryStyle.accent).frame(width: 28)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).font(.headline)
+                Text(detail).font(.subheadline).foregroundStyle(GalleryStyle.secondary)
+            }
         }
     }
 }
