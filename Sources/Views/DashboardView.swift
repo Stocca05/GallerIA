@@ -16,6 +16,13 @@ class DashboardViewModel: ObservableObject {
         self.mlManager = mlManager
     }
 
+    func cancelScan(clear: Bool = false) {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+        if clear { goodAssets = []; badAssets = [] }
+    }
+
     func startScan(threshold: Double) {
         guard scanTask == nil else { return }
         isScanning = true
@@ -38,7 +45,7 @@ class DashboardViewModel: ObservableObject {
 
 
 
-                    if let image = await fetchImage(for: asset),
+                    if let image = await PhotoImageLoader.image(for: asset),
                        let cgImage = image.cgImage,
                        let embedding = mlManager.extractEmbedding(from: cgImage) {
 
@@ -52,7 +59,8 @@ class DashboardViewModel: ObservableObject {
                 return results.sorted { $0.score > $1.score }
             }
 
-            let loadedAssets = await loadingTask.value
+            let loadedAssets = await withTaskCancellationHandler { await loadingTask.value }
+                onCancel: { loadingTask.cancel() }
             guard !Task.isCancelled else { return }
 
             self.goodAssets = loadedAssets.filter { $0.score >= Float(threshold) }
@@ -73,6 +81,7 @@ struct DashboardView: View {
     @State private var showGallery = false
     @State private var showPro = false
     @EnvironmentObject var proManager: ProManager
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ScrollView {
@@ -113,10 +122,35 @@ struct DashboardView: View {
         .sheet(item: $selectedCleanup) { CleanupDetailView(cleanupManager: cleanupManager, type: $0) }
         .fullScreenCover(isPresented: $showGallery) { GalleryView(classifier: viewModel.classifier, mlManager: viewModel.mlManager) }
         .task(id: photoManager.libraryRevision) {
-            if photoManager.isAuthorized && photoManager.libraryRevision > 0 { scan() }
+            if photoManager.isAuthorized && photoManager.libraryRevision > 0 {
+                viewModel.cancelScan()
+                cleanupManager.cancelScan()
+                scan()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("GallerIAPreferencesChanged"))) { _ in
+            if photoManager.isAuthorized { viewModel.cancelScan(); viewModel.startScan(threshold: threshold) }
         }
         .refreshable {
-            if photoManager.isAuthorized { photoManager.requestAccessAndFetch(); scan() }
+            if photoManager.isAuthorized {
+                viewModel.cancelScan()
+                cleanupManager.cancelScan()
+                photoManager.requestAccessAndFetch()
+            }
+        }
+        .onChange(of: threshold) { _, _ in
+            if photoManager.isAuthorized { viewModel.cancelScan(); viewModel.startScan(threshold: threshold) }
+        }
+        .onChange(of: photoManager.authorizationStatus) { _, status in
+            if status != .authorized && status != .limited {
+                viewModel.cancelScan(clear: true)
+                cleanupManager.clearResults()
+                selectedCleanup = nil
+                showGallery = false
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { viewModel.cancelScan(); cleanupManager.cancelScan() }
         }
     }
 
@@ -174,6 +208,27 @@ struct DashboardView: View {
             HStack { Text("Un po’ di spazio in più").font(.title3.bold()); Spacer(); if cleanupManager.isScanning { ProgressView() } }
             Text("Rivedi prima di eliminare. La scelta resta tua.")
                 .font(.subheadline).foregroundStyle(GalleryStyle.secondary)
+            if cleanupManager.isScanning {
+                VStack(alignment: .leading, spacing: 12) {
+                    ProgressView(value: Double(cleanupManager.processed), total: Double(max(1, cleanupManager.total)))
+                    HStack {
+                        Text("\(cleanupManager.processed) / \(cleanupManager.total) foto").monospacedDigit()
+                        Spacer()
+                        Button("Interrompi") { cleanupManager.cancelScan() }
+                    }.font(.caption)
+                }.galleryPanel()
+            } else {
+                HStack {
+                    if let date = cleanupManager.lastScan {
+                        Text("Ultima analisi: \(date.formatted(date: .omitted, time: .shortened))")
+                    }
+                    Spacer()
+                    Button("Analizza di nuovo") { cleanupManager.startCleanupScan() }
+                }.font(.caption).foregroundStyle(GalleryStyle.secondary)
+            }
+            if let message = cleanupManager.statusMessage {
+                Text(message).font(.caption).foregroundStyle(GalleryStyle.secondary)
+            }
             VStack(spacing: 0) {
                 cleanupRow("Foto simili", subtitle: "Gruppi da confrontare", icon: "square.on.square", count: cleanupManager.duplicates.count, type: .duplicates)
                 Divider().overlay(.white.opacity(0.06))
@@ -181,7 +236,7 @@ struct DashboardView: View {
                 Divider().overlay(.white.opacity(0.06))
                 cleanupRow("Video recenti", subtitle: "Rivedi i tuoi ultimi filmati", icon: "video", count: cleanupManager.largeVideos.count, type: .largeVideos)
             }.padding(.horizontal, 18).background(GalleryStyle.surface, in: RoundedRectangle(cornerRadius: 24))
-            Text("Analisi: fino a 500 foto recenti, 100 screenshot e 100 video.")
+            Text("Analisi locale: fino a 500 foto recenti, 100 screenshot e 100 video. Nessun download automatico da iCloud.")
                 .font(.caption2).foregroundStyle(GalleryStyle.secondary)
         }
     }
@@ -237,23 +292,5 @@ struct DashboardView: View {
     private func scan() {
         viewModel.startScan(threshold: threshold)
         cleanupManager.startCleanupScan()
-    }
-}
-
-private func fetchImage(for asset: PHAsset) async -> UIImage? {
-    await withCheckedContinuation { continuation in
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .fastFormat
-        options.isNetworkAccessAllowed = true
-        options.isSynchronous = false
-
-        PHImageManager.default().requestImage(
-            for: asset,
-            targetSize: CGSize(width: 300, height: 300),
-            contentMode: .aspectFit,
-            options: options
-        ) { image, _ in
-            continuation.resume(returning: image)
-        }
     }
 }

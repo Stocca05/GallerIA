@@ -27,6 +27,9 @@ struct ContentView: View {
             if phase == .active { viewModel.photoManager.refreshIfAuthorized() }
             if phase == .background && !viewModel.classifier.batchEmbeddings.isEmpty { viewModel.performTraining() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("GallerIALibraryChanged"))) { _ in
+            viewModel.photoManager.requestAccessAndFetch()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .init("GallerIAReset"))) { _ in
             viewModel.resetBrain()
         }

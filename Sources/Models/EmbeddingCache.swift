@@ -1,13 +1,14 @@
 import Foundation
 
 final class EmbeddingCache: @unchecked Sendable {
+    static let shared = EmbeddingCache()
     private let queue = DispatchQueue(label: "com.stocca.GallerIA.embeddingCache", qos: .utility)
     private let fileURL: URL
     private var embeddings: [String: [Float]]
     private var isDirty = false
     private var saveWorkItem: DispatchWorkItem?
 
-    init() {
+    private init() {
         fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("embeddings_cache.json")
         if let data = try? Data(contentsOf: fileURL),

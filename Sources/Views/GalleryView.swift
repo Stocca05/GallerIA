@@ -140,7 +140,7 @@ struct GalleryView: View {
 
 
 
-                    let image = await fetchImage(for: asset)
+                    let image = await PhotoImageLoader.image(for: asset)
                     guard !Task.isCancelled else { break }
                     guard let image,
                           let cgImage = image.cgImage,
@@ -234,26 +234,6 @@ struct CollagePreviewView: View {
                     Button("Chiudi") { dismiss() }
                 }
             }
-        }
-    }
-}
-
-/// Safe image fetcher: uses `fastFormat` to get a single callback (no double-resume risk).
-private func fetchImage(for asset: PHAsset) async -> UIImage? {
-    await withCheckedContinuation { continuation in
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .fastFormat
-        options.isNetworkAccessAllowed = true
-        options.isSynchronous = false
-
-        PHImageManager.default().requestImage(
-            for: asset,
-            targetSize: CGSize(width: 300, height: 300),
-            contentMode: .aspectFit,
-            options: options
-        ) { image, info in
-            // fastFormat guarantees a single callback, safe for continuation
-            continuation.resume(returning: image)
         }
     }
 }

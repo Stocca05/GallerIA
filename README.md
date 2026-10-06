@@ -20,7 +20,10 @@ The project includes unit tests for preference learning, persistence, undo, and 
 - Photo access can be limited, full, denied, or empty. The app remains navigable in every state.
 - Recommendations are personal affinities, not objective image-quality judgments.
 - Cleanup checks up to 500 recent photos, 100 screenshots and 100 recent videos. Similarity is a suggestion, not proof of duplication. Videos are not ranked by file size.
-- Deletion requires explicit selection, an app confirmation and the system Photos confirmation. Failures are surfaced.
+- Cleanup includes large previews, favorite indicators, pixel dimensions, video duration, suggested selection and clear-all. Suggestions exclude favorites and keep at least one image in every similar group. The keeper is a recommendation based on favorites and resolution, not a quality guarantee.
+- Deletion requires explicit selection, an app confirmation and the system Photos confirmation. The app revalidates group preservation and asset availability immediately before the deletion request. Failures are surfaced.
+- Scans expose progress, cancellation and skipped-image counts. Grouping runs off the main thread and reuses cached features keyed by asset modification date. Automatic scans do not download iCloud-only images; opening a large preview can download one. Image requests time out and cancel when their task ends.
+- Photo library changes refresh the session; revoked access clears visible results. Preference updates and threshold changes refresh recommendations.
 - Image features and preferences are stored locally. iCloud-only Photos assets may be downloaded by Apple's photo library for analysis. There is no external AI backend.
 - Pro uses verified StoreKit 2 transactions. Local flags cannot grant paid access. Pending transactions, cancellation, restoration and revoked entitlements are handled.
 - The widget opens the app; it does not invent library statistics.
@@ -37,4 +40,4 @@ Legacy experimental files (Watch, games, simulated sensitive-content detection) 
 
 ## Verified in this revision
 
-On iPhone 18 Pro / iOS 27 Simulator: build and install succeeded; seven unit tests and two UI tests passed. The five UI captures include onboarding, library permission entry, selection without authorization, Pro unavailable-product state, and privacy. Selected captures are in `Docs/Screenshots`. Purchases and deletion of real media have not been exercised; verify these on a signed sandbox/device build before release.
+On iPhone 18 Pro / iOS 27 Simulator: build and install succeeded; fourteen unit tests and two UI tests passed. The five UI captures include onboarding, library permission entry, selection without authorization, Pro unavailable-product state, and privacy. Selected captures are in `Docs/Screenshots`. Purchases and deletion of real media have not been exercised; verify these on a signed sandbox/device build before release.

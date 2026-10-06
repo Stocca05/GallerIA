@@ -16,7 +16,7 @@ class GallerIAViewModel: ObservableObject {
     // MARK: - Dependencies
     let photoManager = PhotoManager()
     let mlManager = MLManager()
-    let embeddingCache = EmbeddingCache()
+    let embeddingCache = EmbeddingCache.shared
     let classifier = AestheticClassifier()
 
     // MARK: - Internal state
@@ -185,6 +185,7 @@ class GallerIAViewModel: ObservableObject {
         undoHistory.removeAll()
 
         classifier.flushBatch()
+        NotificationCenter.default.post(name: .init("GallerIAPreferencesChanged"), object: nil)
         pendingTrainings = 0
 
         // Refresh scores on queued cards with new weights

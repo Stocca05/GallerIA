@@ -41,6 +41,7 @@
 		8485F7BE79CE09B3A25931E8 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D061DC45DD748DBB64C6EF02 /* DesignSystem.swift */; };
 		860D148EB66874A50D99B6C7 /* AestheticClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0780BC2665B19D617FB5F803 /* AestheticClassifier.swift */; };
 		86AF574678F317A34BFD62A8 /* HapticSymphonyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91406ECB93513D2EC6EB2AC4 /* HapticSymphonyManager.swift */; };
+		8708043BDBE44F0D2185BC49 /* CleanupSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA27BDCBD15F2AE082F294B5 /* CleanupSelectionTests.swift */; };
 		88D0C595CB103E4A423AD915 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C2611D30973A5396B4A6B /* ContentView.swift */; };
 		90083D3CDBDBBFDF292F9527 /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE045DB88F6A2BDF31F42417 /* PDFReportGenerator.swift */; };
 		91AEAED9B3896C4464BEAF86 /* GallerIAWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931E4E53E2CEE71C6E9395E8 /* GallerIAWatchApp.swift */; };
@@ -60,10 +61,12 @@
 		DB12D890EA59FC346C826CE3 /* OCRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554DF17BCFFB937FCDFDAB6B /* OCRView.swift */; };
 		DC0637BC6CE0F9B6FE96A85A /* SensitiveContentModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE96B6D7F436A0A8A55D69D6 /* SensitiveContentModifier.swift */; };
 		DFDCE60412029E4299A4EF37 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B1CC986ACB43AFF8CA2AD8 /* CardView.swift */; };
+		E07C0BA3F8D4A5785124F49F /* PhotoImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F943F1FF088531AEE18A98C6 /* PhotoImageLoader.swift */; };
 		EE5FC267935036360A797BCC /* GallerIAIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B533EE9E8EF8DEBED2C995B /* GallerIAIntents.swift */; };
 		F5229AB26F5152AF94B7373A /* OCRManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8B023AB2878AF55B81FED5 /* OCRManager.swift */; };
 		F5B607FAEF5F4CC4970F83AB /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330A02C9DB7688B8B6902E99 /* SoundManager.swift */; };
 		F8100BD0A96F2EA497DBE070 /* NSFWDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02EAF244913CC586D4942B5 /* NSFWDetector.swift */; };
+		F8D4DB5D87905F85B6379673 /* CleanupSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8F4BC590DD52F7C9E7313B /* CleanupSelection.swift */; };
 		FD883D62815B20D2369C8E0D /* GallerIALiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AF317ECF40808A58B618E0 /* GallerIALiveActivity.swift */; };
 /* End PBXBuildFile section */
 
@@ -135,6 +138,7 @@
 		77D556C274709CC2DDE947EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		78683237171359940F8A2470 /* CleanupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupManager.swift; sourceTree = "<group>"; };
 		7E9E6A85F2D11DFEF5264CE1 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		7F8F4BC590DD52F7C9E7313B /* CleanupSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupSelection.swift; sourceTree = "<group>"; };
 		87C8871CFA61C34B17DDDDC5 /* MainSwipingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSwipingView.swift; sourceTree = "<group>"; };
 		89E409DAB95C6B8FD1378DC2 /* GallerIAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIAApp.swift; sourceTree = "<group>"; };
 		8EF341CFB3FB0AC0C1344420 /* EmbeddingCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddingCache.swift; sourceTree = "<group>"; };
@@ -149,6 +153,7 @@
 		A86958B6A09EF80DDEDDCBD0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A8E7172C19CBDC2843BEA0C1 /* WaterfallGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterfallGrid.swift; sourceTree = "<group>"; };
 		A96FE6BBCEF30A2483A0CC50 /* GallerIATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIATests.swift; sourceTree = "<group>"; };
+		AA27BDCBD15F2AE082F294B5 /* CleanupSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupSelectionTests.swift; sourceTree = "<group>"; };
 		ADC5249C76DFB50E4D2F1348 /* SecretGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretGameView.swift; sourceTree = "<group>"; };
 		AF0C6B5E896F58F745B687DC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B51D0D6BC219A125E6E1462A /* ProManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProManager.swift; sourceTree = "<group>"; };
@@ -168,6 +173,7 @@
 		F3419A5F4537E3A11182372F /* GallerIAUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GallerIAUITests.swift; sourceTree = "<group>"; };
 		F629D34F53A64558BBCE2ADA /* PhotoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoManager.swift; sourceTree = "<group>"; };
 		F8A348ED9E65A5CA4D84326F /* PhotoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
+		F943F1FF088531AEE18A98C6 /* PhotoImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoImageLoader.swift; sourceTree = "<group>"; };
 		FD8727A6FAD777AB7732B1C2 /* MLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLManager.swift; sourceTree = "<group>"; };
 		FE045DB88F6A2BDF31F42417 /* PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportGenerator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -176,6 +182,7 @@
 		0500E39A8C6755AB6F6A7B4D /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AA27BDCBD15F2AE082F294B5 /* CleanupSelectionTests.swift */,
 				A96FE6BBCEF30A2483A0CC50 /* GallerIATests.swift */,
 			);
 			path = Tests;
@@ -197,6 +204,7 @@
 				6B8B023AB2878AF55B81FED5 /* OCRManager.swift */,
 				FE045DB88F6A2BDF31F42417 /* PDFReportGenerator.swift */,
 				A121863C82234BF133ADFFB3 /* PhotoEditorManager.swift */,
+				F943F1FF088531AEE18A98C6 /* PhotoImageLoader.swift */,
 				F629D34F53A64558BBCE2ADA /* PhotoManager.swift */,
 				B51D0D6BC219A125E6E1462A /* ProManager.swift */,
 				330A02C9DB7688B8B6902E99 /* SoundManager.swift */,
@@ -230,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				0780BC2665B19D617FB5F803 /* AestheticClassifier.swift */,
+				7F8F4BC590DD52F7C9E7313B /* CleanupSelection.swift */,
 				8EF341CFB3FB0AC0C1344420 /* EmbeddingCache.swift */,
 				68F0FE5C4A5BDF399FBAAD1B /* EmbeddingModel.swift */,
 				755F63A4EE4E7BBC8E3A74E7 /* PhotoCard.swift */,
@@ -499,6 +508,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8708043BDBE44F0D2185BC49 /* CleanupSelectionTests.swift in Sources */,
 				73D77FCF9276CD3023A83148 /* GallerIATests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -522,6 +532,7 @@
 				DFDCE60412029E4299A4EF37 /* CardView.swift in Sources */,
 				B34A23BCF82A9DC9F7BE7DFC /* CleanupDetailView.swift in Sources */,
 				B05A7A08968D70E033D42C5F /* CleanupManager.swift in Sources */,
+				F8D4DB5D87905F85B6379673 /* CleanupSelection.swift in Sources */,
 				A9498E8D3B1BEEE73147E7CA /* CollageManager.swift in Sources */,
 				003133CBB0D34662A952F7B0 /* ConfettiView.swift in Sources */,
 				79D3F6140F025237FC4535EC /* ContentView.swift in Sources */,
@@ -552,6 +563,7 @@
 				46A602CE8846E38700B28BA8 /* PhotoDetailView.swift in Sources */,
 				D19B2DA419B5538813D83AB2 /* PhotoEditorManager.swift in Sources */,
 				6EF339469F4A643919411141 /* PhotoEditorView.swift in Sources */,
+				E07C0BA3F8D4A5785124F49F /* PhotoImageLoader.swift in Sources */,
 				C11164D9E08A5095B03E3E70 /* PhotoManager.swift in Sources */,
 				3934DAC65DB70F2A47279DA7 /* ProManager.swift in Sources */,
 				A2E56CE0CB3D3A65972CE97E /* ProView.swift in Sources */,

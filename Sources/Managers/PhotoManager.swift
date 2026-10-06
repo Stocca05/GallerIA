@@ -2,7 +2,21 @@ import Photos
 import SwiftUI
 
 @MainActor
-class PhotoManager: ObservableObject {
+class PhotoManager: NSObject, ObservableObject, PHPhotoLibraryChangeObserver {
+    override init() {
+        super.init()
+        PHPhotoLibrary.shared().register(self)
+    }
+
+    deinit { PHPhotoLibrary.shared().unregisterChangeObserver(self) }
+
+    nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
+        Task { @MainActor [weak self] in
+            guard let self, let result = self.allAssetsResult,
+                  changeInstance.changeDetails(for: result) != nil else { return }
+            self.requestAccessAndFetch()
+        }
+    }
     @Published var authorizationStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     @Published var libraryRevision = 0
     var isAuthorized: Bool { authorizationStatus == .authorized || authorizationStatus == .limited }
@@ -11,7 +25,18 @@ class PhotoManager: ObservableObject {
     func refreshIfAuthorized() {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         authorizationStatus = status
-        guard status == .authorized || status == .limited else { return }
+        guard status == .authorized || status == .limited else {
+            if lastStatus != nil {
+                assets = []
+                allAssetsResult = nil
+                shuffledIndices = []
+                currentIndex = 0
+                totalPhotos = 0
+                lastStatus = nil
+                libraryRevision += 1
+            }
+            return
+        }
         if lastStatus != status { requestAccessAndFetch() }
     }
 

@@ -2,195 +2,245 @@ import SwiftUI
 import Photos
 
 enum CleanupType: Identifiable {
-    case duplicates
-    case screenshots
-    case largeVideos
-
+    case duplicates, screenshots, largeVideos
     var id: Self { self }
 }
 
 struct CleanupDetailView: View {
     @ObservedObject var cleanupManager: CleanupManager
     let type: CleanupType
-
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedAssets: Set<String> = []
     @State private var isDeleting = false
     @State private var confirmDelete = false
     @State private var deletionError: String?
+    @State private var previewAsset: AssetPreview?
+    @State private var selectionMessage: String?
 
-    var title: String {
+    private var title: String {
         switch type {
         case .duplicates: return "Foto simili"
         case .screenshots: return "Screenshot"
         case .largeVideos: return "Video recenti"
         }
     }
+    private var assets: [PHAsset] {
+        switch type {
+        case .duplicates: return cleanupManager.duplicates.flatMap(\.assets)
+        case .screenshots: return cleanupManager.screenshots
+        case .largeVideos: return cleanupManager.largeVideos
+        }
+    }
+    private var groups: [[String]] {
+        cleanupManager.duplicates.map { $0.assets.map(\.localIdentifier) }
+    }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-
-                ScrollView {
-                    if type == .duplicates {
-                        duplicatesGrid
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    if cleanupManager.isScanning && type == .duplicates {
+                        ProgressView(value: Double(cleanupManager.processed), total: Double(max(1, cleanupManager.total))) {
+                            Text("Analisi: \(cleanupManager.processed) di \(cleanupManager.total)")
+                        }.galleryPanel()
+                    }
+                    if assets.isEmpty {
+                        ContentUnavailableView(cleanupManager.isScanning ? "Cerchiamo nella tua libreria" : "Niente da riordinare qui",
+                            systemImage: "checkmark.seal", description: Text(cleanupManager.isScanning
+                                ? "I gruppi compariranno al termine dell’analisi."
+                                : "Nessun elemento trovato tra i contenuti analizzati. Le foto su iCloud potrebbero non essere disponibili."))
                     } else {
-                        standardGrid(assets: type == .screenshots ? cleanupManager.screenshots : cleanupManager.largeVideos)
-                            .padding(.bottom, 110)
-                    }
-                }
-
-                // Bottom Delete Bar
-                if !selectedAssets.isEmpty {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Text("\(selectedAssets.count) selezionati")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            Spacer()
-                            Button {
-                                confirmDelete = true
-                            } label: {
-                                if isDeleting {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Text(String(localized: "common.delete"))
-                                        .bold()
-                                }
+                        selectionHeader
+                        if type == .duplicates {
+                            ForEach(cleanupManager.duplicates) { group in
+                                VStack(alignment: .leading, spacing: 14) {
+                                    HStack {
+                                        Text("\(group.assets.count) foto simili").font(.headline)
+                                        Spacer()
+                                        Text("Conservane almeno una").font(.caption).foregroundStyle(GalleryStyle.secondary)
+                                    }
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(alignment: .top, spacing: 12) {
+                                            ForEach(group.assets, id: \.localIdentifier) { asset in
+                                                assetCard(asset, keeper: asset.localIdentifier == group.original.localIdentifier)
+                                            }
+                                        }
+                                    }
+                                }.galleryPanel()
                             }
-                            .disabled(isDeleting)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.red, in: Capsule())
+                        } else {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 14)], spacing: 18) {
+                                ForEach(assets, id: \.localIdentifier) { assetCard($0) }
+                            }
                         }
-                        .padding()
-                        .glassmorphism(cornerRadius: 24, borderOpacity: 0.2)
-                        .padding()
                     }
+                    if let message = cleanupManager.statusMessage {
+                        Text(message).font(.footnote).foregroundStyle(GalleryStyle.secondary)
+                    }
+                }.padding(20)
+            }
+            .background(GalleryStyle.background)
+            .safeAreaInset(edge: .bottom) {
+                if !selectedAssets.isEmpty {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(selectedAssets.count) selezionati").font(.headline)
+                            Text("Confermerai prima di eliminare").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button(role: .destructive) { confirmDelete = true } label: {
+                            if isDeleting { ProgressView() }
+                            else { Label("Elimina", systemImage: "trash") }
+                        }.buttonStyle(.borderedProminent).tint(.red).disabled(isDeleting)
+                    }.padding().background(.regularMaterial)
                 }
             }
+            .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Chiudi") { dismiss() }.disabled(isDeleting) }
+            }
+            .interactiveDismissDisabled(isDeleting)
             .confirmationDialog("Eliminare \(selectedAssets.count) elementi dalla libreria?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Elimina dalla libreria", role: .destructive) { deleteSelected() }
                 Button("Annulla", role: .cancel) { }
-            } message: { Text("Gli elementi saranno spostati in Eliminati di recente nell’app Foto.") }
-            .alert("Eliminazione non completata", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
+            } message: { Text("Gli elementi saranno spostati in Eliminati di recente nell’app Foto. La modifica si applica anche alla libreria iCloud, se attiva.") }
+            .alert("Controlla la selezione", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
                 Button("OK") { deletionError = nil }
             } message: { Text(deletionError ?? "Riprova.") }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.black, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "common.close")) {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
+            .sheet(item: $previewAsset) { CleanupPreviewView(asset: $0.asset) }
+            .onChange(of: assets.map(\.localIdentifier)) { _, ids in
+                selectedAssets.formIntersection(Set(ids))
+            }
+        }.tint(GalleryStyle.accent).preferredColorScheme(.dark)
+    }
+
+    private var selectionHeader: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(type == .duplicates
+                 ? "Confronta le immagini prima di scegliere. Il suggerimento da conservare privilegia preferiti e risoluzione."
+                 : "Apri un’anteprima e seleziona solo ciò che non ti serve più.")
+                .font(.subheadline).foregroundStyle(GalleryStyle.secondary)
+            HStack {
+                if type == .duplicates {
+                    Button("Seleziona suggerite") {
+                        let protected = Set(assets.filter(\.isFavorite).map(\.localIdentifier))
+                        selectedAssets = CleanupSelection.suggested(groups: groups, protected: protected)
+                        selectionMessage = "Preferiti esclusi. Controlla le foto selezionate prima di procedere."
+                    }.disabled(cleanupManager.isScanning)
                 }
+                Spacer()
+                Button("Deseleziona tutto") { selectedAssets = []; selectionMessage = nil }
+                    .disabled(selectedAssets.isEmpty)
+            }.font(.caption.bold()).disabled(isDeleting)
+            if let selectionMessage {
+                Text(selectionMessage).font(.caption).foregroundStyle(GalleryStyle.accent)
+                    .accessibilityAddTraits(.updatesFrequently)
             }
         }
     }
 
-    // MARK: - Grids
-
-    private var duplicatesGrid: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            ForEach(cleanupManager.duplicates) { group in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Gruppo Simile")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(group.assets, id: \.localIdentifier) { asset in
-                                selectableThumbnail(for: asset)
-                            }
+    private func assetCard(_ asset: PHAsset, keeper: Bool = false) -> some View {
+        let selected = selectedAssets.contains(asset.localIdentifier)
+        return VStack(alignment: .leading, spacing: 8) {
+            Button { previewAsset = AssetPreview(asset: asset) } label: {
+                ThumbnailView(asset: asset, size: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(alignment: .topLeading) {
+                        if asset.isFavorite {
+                            Image(systemName: "heart.fill").font(.caption).padding(7)
+                                .background(.regularMaterial, in: Circle()).padding(6)
                         }
-                        .padding(.horizontal)
                     }
-                }
-            }
-        }
-        .padding(.vertical)
-    }
-
-    private func standardGrid(assets: [PHAsset]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 2)], spacing: 2) {
-            ForEach(assets, id: \.localIdentifier) { asset in
-                selectableThumbnail(for: asset)
-            }
-        }
-    }
-
-    private func selectableThumbnail(for asset: PHAsset) -> some View {
-        let isSelected = selectedAssets.contains(asset.localIdentifier)
-        return ZStack(alignment: .bottomTrailing) {
-            ThumbnailView(asset: asset, size: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 3)
-                )
-
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.blue)
-                    .background(Circle().fill(Color.white))
-                    .padding(4)
+            }.accessibilityLabel("Apri anteprima")
+            if keeper { Label("Da conservare", systemImage: "sparkles").font(.caption2).foregroundStyle(GalleryStyle.accent) }
+            if asset.mediaType == .video {
+                Text(Duration.seconds(asset.duration).formatted(.time(pattern: .minuteSecond)))
+                    .font(.caption).monospacedDigit().foregroundStyle(.secondary)
             } else {
-                Image(systemName: "circle")
-                    .foregroundColor(.white)
-                    .shadow(radius: 2)
-                    .padding(4)
+                Text("\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption2).foregroundStyle(.secondary)
             }
-        }
-        .onTapGesture {
-            guard !isDeleting else { return }
-            SoundManager.shared.playSuccess() // Light tap sound
-            if isSelected {
-                selectedAssets.remove(asset.localIdentifier)
-            } else {
-                selectedAssets.insert(asset.localIdentifier)
-            }
-        }
+            Button {
+                if selected { selectedAssets.remove(asset.localIdentifier) }
+                else if CleanupSelection.canSelect(asset.localIdentifier, selected: selectedAssets, groups: groups) {
+                    selectedAssets.insert(asset.localIdentifier)
+                    selectionMessage = nil
+                } else { selectionMessage = "Conserva almeno una foto per ogni gruppo di immagini simili." }
+            } label: {
+                Label(selected ? "Selezionata" : "Seleziona", systemImage: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.caption.bold()).frame(maxWidth: .infinity, minHeight: 44)
+                    .background(selected ? GalleryStyle.accent.opacity(0.16) : GalleryStyle.surface, in: RoundedRectangle(cornerRadius: 12))
+            }.accessibilityValue(selected ? "Selezionata per l’eliminazione" : "Non selezionata")
+        }.frame(width: 140).disabled(isDeleting)
     }
-
-    // MARK: - Actions
 
     private func deleteSelected() {
-        isDeleting = true
-        var toDelete: [PHAsset] = []
-
-        let allAssets = cleanupManager.duplicates.flatMap { $0.assets } + cleanupManager.screenshots + cleanupManager.largeVideos
-
-        for id in selectedAssets {
-            if let asset = allAssets.first(where: { $0.localIdentifier == id }) {
-                toDelete.append(asset)
-            }
+        guard !isDeleting, !selectedAssets.isEmpty else { return }
+        let ids = selectedAssets.intersection(Set(assets.map(\.localIdentifier)))
+        guard !ids.isEmpty else { selectedAssets = []; return }
+        let relevantGroups = groups.filter { !Set($0).isDisjoint(with: ids) }
+        let liveAssets = PHAsset.fetchAssets(withLocalIdentifiers: Array(Set(relevantGroups.flatMap { $0 }).union(ids)), options: nil)
+        var available = Set<String>()
+        liveAssets.enumerateObjects { asset, _, _ in available.insert(asset.localIdentifier) }
+        guard CleanupSelection.preservesEveryGroup(selected: ids, groups: relevantGroups, available: available) else {
+            deletionError = "Conserva almeno una foto per ogni gruppo. La libreria non è stata modificata."; return
         }
-
+        let toDelete = PHAsset.fetchAssets(withLocalIdentifiers: Array(ids), options: nil)
+        guard toDelete.count == ids.count else {
+            deletionError = "La libreria è cambiata. Aggiorna l’analisi e controlla nuovamente la selezione."; return
+        }
+        isDeleting = true
         PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.deleteAssets(toDelete as NSArray)
+            PHAssetChangeRequest.deleteAssets(toDelete)
         } completionHandler: { success, error in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 isDeleting = false
                 if success {
-                    SoundManager.shared.playDelete()
-                    selectedAssets.removeAll()
-                    cleanupManager.duplicates.removeAll { $0.assets.contains { toDelete.contains($0) } }
-                    cleanupManager.screenshots.removeAll { toDelete.contains($0) }
-                    cleanupManager.largeVideos.removeAll { toDelete.contains($0) }
-                    cleanupManager.startCleanupScan()
-                } else {
-                    deletionError = error?.localizedDescription ?? "Operazione annullata. Nessuna modifica applicata."
-                }
+                    selectedAssets = []
+                    selectionMessage = nil
+                    cleanupManager.removeDeleted(ids)
+                } else { deletionError = error?.localizedDescription ?? "Operazione annullata. Nessuna foto eliminata." }
             }
         }
+    }
+}
+
+private struct AssetPreview: Identifiable {
+    let asset: PHAsset
+    var id: String { asset.localIdentifier }
+}
+
+private struct CleanupPreviewView: View {
+    let asset: PHAsset
+    @Environment(\.dismiss) private var dismiss
+    @State private var image: UIImage?
+    @State private var loading = true
+    @State private var retry = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFit()
+                    if asset.mediaType == .video {
+                        Text("Anteprima del video · \(Duration.seconds(asset.duration).formatted(.time(pattern: .minuteSecond)))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let date = asset.creationDate { Text(date, format: .dateTime.day().month(.wide).year()).font(.subheadline) }
+                } else if loading { ProgressView("Caricamento anteprima…") }
+                else {
+                    ContentUnavailableView {
+                        Label("Anteprima non disponibile", systemImage: "icloud.slash")
+                    } description: { Text("Controlla la connessione per le foto su iCloud.") }
+                    actions: { Button("Riprova") { retry += 1 } }
+                }
+            }.padding().frame(maxWidth: .infinity, maxHeight: .infinity).background(GalleryStyle.background)
+                .navigationTitle("Controlla prima di scegliere").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Chiudi") { dismiss() } } }
+                .task(id: retry) {
+                    loading = true
+                    image = await PhotoImageLoader.image(for: asset, size: CGSize(width: 1600, height: 1600), networkAllowed: true)
+                    loading = false
+                }
+        }.preferredColorScheme(.dark)
     }
 }
