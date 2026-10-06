@@ -26,6 +26,10 @@ The project includes unit tests for preference learning, persistence, undo, and 
 - Photo library changes refresh the session; revoked access clears visible results. Preference updates and threshold changes refresh recommendations.
 - Image features and preferences are stored locally. iCloud-only Photos assets may be downloaded by Apple's photo library for analysis. There is no external AI backend.
 - Pro uses verified StoreKit 2 transactions. Local flags cannot grant paid access. Pending transactions, cancellation, restoration and revoked entitlements are handled.
+- The collection scans up to 150 recent photos and progressively displays results. It supports affinity/recent/oldest ordering, favorites, all photos and Italian date search (e.g. `ottobre 2026`). Untrained models do not hide photos behind an affinity threshold.
+- Photo details load a larger image (up to 2400 pixels per side) before enabling editing, OCR and sharing. Collages fetch larger source images rather than stretching collection thumbnails. These are optimized copies, not original-file exports.
+- The editor offers comparison, reset, debounced adjustments and a real “save a copy” action through Photos. It requests add-only permission, reports failures and preserves the source asset. Exported copies do not preserve the original location/metadata. Synthetic editor fixtures are compiled only into Debug builds.
+- The map displays actual locations recorded on the collection’s assets and opens the selected photo. No location permission is requested for the current device.
 - The widget opens the app; it does not invent library statistics.
 
 ## Before App Store release
@@ -40,4 +44,4 @@ Legacy experimental files (Watch, games, simulated sensitive-content detection) 
 
 ## Verified in this revision
 
-On iPhone 18 Pro / iOS 27 Simulator: build and install succeeded; fourteen unit tests and two UI tests passed. The five UI captures include onboarding, library permission entry, selection without authorization, Pro unavailable-product state, and privacy. Selected captures are in `Docs/Screenshots`. Purchases and deletion of real media have not been exercised; verify these on a signed sandbox/device build before release.
+On iPhone 18 Pro / iOS 27 Simulator: build and install succeeded; nineteen unit tests and three UI tests passed. UI coverage includes onboarding, library permission entry, selection without authorization, Pro unavailable-product state, privacy, and editor adjustment/reset with a synthetic image. Selected captures are in `Docs/Screenshots`. Purchases, deletion of real media and saving to a real photo library have not been exercised; verify these on a signed sandbox/device build before release.

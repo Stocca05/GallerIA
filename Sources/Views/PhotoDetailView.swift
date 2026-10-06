@@ -1,148 +1,96 @@
 import SwiftUI
+import Photos
 
 struct PhotoDetailView: View {
     @State var image: UIImage
     let score: Float
+    var asset: PHAsset? = nil
     @Environment(\.dismiss) private var dismiss
-
+    @State private var original: UIImage?
+    @State private var loading = true
     @State private var isEnhancing = false
     @State private var isEnhanced = false
     @State private var showManualEditor = false
     @State private var showOCR = false
-    @State private var isWatermarked = true
+    @State private var errorMessage: String?
+    @State private var retry = 0
+    @State private var ready = false
 
     var body: some View {
         NavigationStack {
-            VStack {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .padding()
-                    .shadow(radius: 10)
-                    .overlay(alignment: .topTrailing) {
-                        if isEnhanced {
-                            Text(String(localized: "photo.enhanced"))
-                                .font(.caption.bold())
-                                .padding(6)
-                                .background(Color.yellow, in: Capsule())
-                                .foregroundColor(.black)
-                                .padding(24)
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Image(uiImage: image).resizable().scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 480)
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
+                    if loading { ProgressView("Caricamento dell’immagine per modifica e condivisione…").font(.caption) }
+                    if !loading && !ready {
+                        Text("È disponibile solo la miniatura. Controlla la connessione per caricare la foto da iCloud.")
+                            .font(.subheadline).foregroundStyle(GalleryStyle.secondary)
+                        Button("Riprova a caricare") { retry += 1 }
                     }
-
-                VStack(spacing: 12) {
-                    Text(String(localized: "photo.neural_analysis"))
-                        .font(.title2.bold())
-
-                    HStack {
-                        Text(String(localized: "photo.aesthetic_affinity"))
-                        Spacer()
-                        Text("\(Int(score * 100))%")
-                            .bold()
-                            .foregroundColor(score >= 0.8 ? .green : .orange)
+                    if let date = asset?.creationDate {
+                        Text(date, format: .dateTime.day().month(.wide).year()).font(.title3.weight(.medium))
                     }
-
-                    ProgressView(value: score, total: 1.0)
-                        .tint(score >= 0.8 ? .green : .orange)
-                }
-                .padding()
-                .glassmorphism(cornerRadius: 16, borderOpacity: 0.2)
-                .padding(.horizontal)
-
-                if !isEnhanced {
-                    HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack { Text("Affinità con il tuo gusto"); Spacer(); Text(score, format: .percent.precision(.fractionLength(0))).bold() }
+                        ProgressView(value: Double(score)).tint(GalleryStyle.accent)
+                        Text("Un suggerimento basato sulle tue scelte, non un giudizio sulla qualità della foto.")
+                            .font(.caption).foregroundStyle(GalleryStyle.secondary)
+                    }.galleryPanel()
+                    VStack(spacing: 12) {
                         Button {
-                            enhanceImage()
+                            if isEnhanced, let original { image = original; isEnhanced = false }
+                            else { enhance() }
                         } label: {
-                            if isEnhancing {
-                                ProgressView().tint(.white)
-                            } else {
-                                HStack {
-                                    Image(systemName: "wand.and.stars")
-                                    Text(String(localized: "photo.enhance_magic"))
-                                }
-                                .font(.headline)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 16))
-
-                        Button {
-                            showOCR = true
-                        } label: {
-                            Image(systemName: "text.viewfinder")
-                                .font(.headline)
-                        }
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-
-                        Button {
-                            showManualEditor = true
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.headline)
-                        }
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                }
-
-                Spacer()
-            }
-            .navigationTitle("Dettaglio")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    let shareImage = isWatermarked ? WatermarkManager.shared.applyWatermark(to: image) : image
-
-                    ShareLink(
-                        item: Image(uiImage: shareImage),
-                        preview: SharePreview("Scelto dall'IA di GallerIA", image: Image(uiImage: shareImage))
-                    ) {
-                        Image(systemName: "square.and.arrow.up")
+                            if isEnhancing { ProgressView() }
+                            else { Label(isEnhanced ? "Ripristina immagine" : "Regolazione automatica", systemImage: "wand.and.stars") }
+                        }.buttonStyle(.bordered).frame(maxWidth: .infinity)
+                        HStack {
+                            Button { showManualEditor = true } label: { Label("Regola e salva", systemImage: "slider.horizontal.3") }
+                            Spacer()
+                            Button { showOCR = true } label: { Label("Leggi testo", systemImage: "text.viewfinder") }
+                        }.font(.subheadline)
+                    }.disabled(!ready || isEnhancing)
+                    Text("Immagine ottimizzata fino a 2400 pixel per lato. Le modifiche si salvano come nuova copia dall’editor.")
+                        .font(.caption).foregroundStyle(GalleryStyle.secondary)
+                }.padding(22).frame(maxWidth: 720).frame(maxWidth: .infinity)
+            }.background(GalleryStyle.background)
+                .navigationTitle("La tua foto").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Chiudi") { dismiss() } }
+                    ToolbarItem(placement: .primaryAction) {
+                        ShareLink(item: Image(uiImage: image), preview: SharePreview("La mia foto", image: Image(uiImage: image))) {
+                            Label("Condividi", systemImage: "square.and.arrow.up")
+                        }.disabled(!ready || isEnhancing)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "common.close")) {
-                        dismiss()
-                    }
+                .sheet(isPresented: $showManualEditor) { PhotoEditorView(image: image) }
+                .sheet(isPresented: $showOCR) { OCRView(image: image) }
+                .task(id: retry) {
+                    loading = true
+                    if let asset {
+                        if let loaded = await PhotoImageLoader.image(for: asset, size: CGSize(width: 2400, height: 2400), networkAllowed: true), !Task.isCancelled {
+                            image = loaded; original = loaded; ready = true
+                        }
+                    } else { original = image; ready = true }
+                    loading = false
                 }
-                ToolbarItem(placement: .bottomBar) {
-                    Toggle("Applica Filigrana", isOn: $isWatermarked)
-                        .padding(.horizontal)
-                }
-            }
-            .sheet(isPresented: $showManualEditor) {
-                PhotoEditorView(image: image)
-            }
-            .sheet(isPresented: $showOCR) {
-                OCRView(image: image)
-            }
-        }
+                .alert("Regolazione non riuscita", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                    Button("OK") { errorMessage = nil }
+                } message: { Text(errorMessage ?? "Riprova.") }
+        }.tint(GalleryStyle.accent).preferredColorScheme(.dark)
     }
 
-    private func enhanceImage() {
-        guard !isEnhancing else { return }
+    private func enhance() {
+        guard ready, !isEnhancing else { return }
         isEnhancing = true
-
-        let currentImage = self.image
-
-        Task.detached(priority: .userInitiated) {
-            let enhanced = PhotoEditorManager.shared.autoEnhance(image: currentImage)
-            await MainActor.run {
-                if let enhanced = enhanced {
-                    self.image = enhanced
-                    self.isEnhanced = true
-                    HapticSymphonyManager.shared.playSuccessRipple()
-                    SoundManager.shared.playSuccess()
-                }
-                self.isEnhancing = false
-            }
+        let source = image
+        Task {
+            let result = await Task.detached(priority: .userInitiated) { PhotoEditorManager.shared.autoEnhance(image: source) }.value
+            isEnhancing = false
+            if let result { image = result; isEnhanced = true }
+            else { errorMessage = "Non è stato possibile elaborare questa immagine." }
         }
     }
 }

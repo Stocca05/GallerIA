@@ -19,6 +19,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.stocca.GallerIA
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Necessario per analizzare le foto ed estrarre la tua estetica."
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Salva le immagini modificate come nuove copie nella tua libreria Foto."
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Necessario per proteggere i tuoi capolavori."
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

@@ -26,6 +26,7 @@ final class PhotoImageLoader {
             self.continuation = continuation
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
+            options.resizeMode = .exact
             options.isNetworkAccessAllowed = networkAllowed
             requestID = PHImageManager.default().requestImage(for: asset, targetSize: size,
                 contentMode: .aspectFit, options: options) { image, info in

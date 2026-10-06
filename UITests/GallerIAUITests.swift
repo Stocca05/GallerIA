@@ -3,6 +3,7 @@ import XCTest
 final class GallerIAUITests: XCTestCase {
     func testOnboardingAndLibrary() {
         let app = XCUIApplication()
+        app.resetAuthorizationStatus(for: .photos)
         app.launchArguments = ["--reset-onboarding"]
         app.launch()
         XCTAssertTrue(app.buttons["Crea la tua selezione"].waitForExistence(timeout: 10))
@@ -28,6 +29,27 @@ final class GallerIAUITests: XCTestCase {
         app.buttons["Come vengono usati i tuoi dati"].tap()
         XCTAssertTrue(app.staticTexts["I tuoi ricordi, sotto il tuo controllo."].waitForExistence(timeout: 5))
         capture("05-privacy", app)
+    }
+
+    func testEditorAdjustmentsAndReset() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--preview-editor"]
+        app.launch()
+        XCTAssertTrue(app.sliders["Luminosità"].waitForExistence(timeout: 8))
+        app.sliders["Luminosità"].adjust(toNormalizedSliderPosition: 0.7)
+        app.buttons["Prima delle regolazioni"].tap()
+        app.buttons["Modificata"].tap()
+        app.swipeUp()
+        let reset = app.buttons["Ripristina regolazioni"]
+        XCTAssertTrue(reset.isEnabled)
+        reset.tap()
+        XCTAssertFalse(reset.isEnabled)
+        let save = app.buttons["Salva una copia in Foto"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        let ready = NSPredicate(format: "enabled == true")
+        expectation(for: ready, evaluatedWith: save)
+        waitForExpectations(timeout: 5)
+        capture("06-editor", app)
     }
 
     private func capture(_ name: String, _ app: XCUIApplication) {

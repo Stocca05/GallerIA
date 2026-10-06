@@ -19,26 +19,38 @@ struct GallerIAApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if !hasSeenOnboarding {
-                    OnboardingView()
-                        .transition(.opacity)
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--preview-editor") {
+                    PhotoEditorView(image: EditorPreviewFixture.image)
                 } else {
-                    ContentView()
-                        .environmentObject(proManager)
-                        .environmentObject(authManager)
-
-                    if authManager.isPrivacyLockEnabled && !authManager.isAuthenticated {
-                        LockView()
-                            .environmentObject(authManager)
-                            .transition(.opacity)
-                    }
+                    appContent
                 }
+                #else
+                appContent
+                #endif
             }
         }
         .modelContainer(for: [EmbeddingModel.self, RatedPhoto.self])
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background {
-                authManager.lock()
+            if phase == .background { authManager.lock() }
+        }
+    }
+
+    private var appContent: some View {
+        ZStack {
+            if !hasSeenOnboarding {
+                OnboardingView()
+                    .transition(.opacity)
+            } else {
+                ContentView()
+                    .environmentObject(proManager)
+                    .environmentObject(authManager)
+
+                if authManager.isPrivacyLockEnabled && !authManager.isAuthenticated {
+                    LockView()
+                        .environmentObject(authManager)
+                        .transition(.opacity)
+                }
             }
         }
     }
