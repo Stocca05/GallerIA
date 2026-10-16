@@ -10,6 +10,8 @@ struct CleanupDetailView: View {
     @ObservedObject var cleanupManager: CleanupManager
     let type: CleanupType
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var decisions = PhotoDecisionStore.shared
+    @State private var comparison: DuplicateGroup?
     @State private var selectedAssets: Set<String> = []
     @State private var isDeleting = false
     @State private var confirmDelete = false
@@ -59,6 +61,7 @@ struct CleanupDetailView: View {
                                         Spacer()
                                         Text("Conservane almeno una").font(.caption).foregroundStyle(GalleryStyle.secondary)
                                     }
+                                    Button("Confronta due scatti", systemImage: "rectangle.split.2x1") { comparison = group }
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(alignment: .top, spacing: 12) {
                                             ForEach(group.assets, id: \.localIdentifier) { asset in
@@ -107,6 +110,8 @@ struct CleanupDetailView: View {
             .alert("Controlla la selezione", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
                 Button("OK") { deletionError = nil }
             } message: { Text(deletionError ?? "Riprova.") }
+            .sheet(item: $comparison) { group in SimilarPhotoComparisonView(group: group) }
+            .onChange(of: decisions.data.protectedIDs) { _, protected in selectedAssets.subtract(protected) }
             .sheet(item: $previewAsset) { CleanupPreviewView(asset: $0.asset) }
             .onChange(of: assets.map(\.localIdentifier)) { _, ids in
                 selectedAssets.formIntersection(Set(ids))
@@ -123,7 +128,7 @@ struct CleanupDetailView: View {
             HStack {
                 if type == .duplicates {
                     Button("Seleziona suggerite") {
-                        let protected = Set(assets.filter(\.isFavorite).map(\.localIdentifier))
+                        let protected = Set(assets.filter(\.isFavorite).map(\.localIdentifier)).union(decisions.data.protectedIDs)
                         selectedAssets = CleanupSelection.suggested(groups: groups, protected: protected)
                         selectionMessage = "Preferiti esclusi. Controlla le foto selezionate prima di procedere."
                     }.disabled(cleanupManager.isScanning)
@@ -152,6 +157,7 @@ struct CleanupDetailView: View {
                         }
                     }
             }.accessibilityLabel("Apri anteprima")
+            if decisions.isProtected(asset.localIdentifier) { Label("Ricordo protetto", systemImage: "lock.shield").font(.caption2).foregroundStyle(GalleryStyle.accent) }
             if keeper { Label("Da conservare", systemImage: "sparkles").font(.caption2).foregroundStyle(GalleryStyle.accent) }
             if asset.mediaType == .video {
                 Text(Duration.seconds(asset.duration).formatted(.time(pattern: .minuteSecond)))
@@ -160,7 +166,9 @@ struct CleanupDetailView: View {
                 Text("\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption2).foregroundStyle(.secondary)
             }
             Button {
-                if selected { selectedAssets.remove(asset.localIdentifier) }
+                if decisions.isProtected(asset.localIdentifier) || asset.isFavorite {
+                    selectionMessage = "I preferiti e i ricordi protetti non vengono eliminati."
+                } else if selected { selectedAssets.remove(asset.localIdentifier) }
                 else if CleanupSelection.canSelect(asset.localIdentifier, selected: selectedAssets, groups: groups) {
                     selectedAssets.insert(asset.localIdentifier)
                     selectionMessage = nil
@@ -177,29 +185,15 @@ struct CleanupDetailView: View {
         guard !isDeleting, !selectedAssets.isEmpty else { return }
         let ids = selectedAssets.intersection(Set(assets.map(\.localIdentifier)))
         guard !ids.isEmpty else { selectedAssets = []; return }
-        let relevantGroups = groups.filter { !Set($0).isDisjoint(with: ids) }
-        let liveAssets = PHAsset.fetchAssets(withLocalIdentifiers: Array(Set(relevantGroups.flatMap { $0 }).union(ids)), options: nil)
-        var available = Set<String>()
-        liveAssets.enumerateObjects { asset, _, _ in available.insert(asset.localIdentifier) }
-        guard CleanupSelection.preservesEveryGroup(selected: ids, groups: relevantGroups, available: available) else {
-            deletionError = "Conserva almeno una foto per ogni gruppo. La libreria non è stata modificata."; return
-        }
-        let toDelete = PHAsset.fetchAssets(withLocalIdentifiers: Array(ids), options: nil)
-        guard toDelete.count == ids.count else {
-            deletionError = "La libreria è cambiata. Aggiorna l’analisi e controlla nuovamente la selezione."; return
-        }
         isDeleting = true
-        PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.deleteAssets(toDelete)
-        } completionHandler: { success, error in
-            Task { @MainActor in
-                isDeleting = false
-                if success {
-                    selectedAssets = []
-                    selectionMessage = nil
-                    cleanupManager.removeDeleted(ids)
-                } else { deletionError = error?.localizedDescription ?? "Operazione annullata. Nessuna foto eliminata." }
-            }
+        Task {
+            defer { isDeleting = false }
+            do {
+                try await PhotoDeletionService.shared.delete(ids, groups: groups)
+                selectedAssets = []
+                selectionMessage = nil
+                cleanupManager.removeDeleted(ids)
+            } catch { deletionError = error.localizedDescription }
         }
     }
 }

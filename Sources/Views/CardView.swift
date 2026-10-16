@@ -7,6 +7,7 @@ struct CardView: View {
     var isCleanup = false
     let onSwipe: (Bool) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGSize = .zero
     @State private var isDismissing = false
 
@@ -48,8 +49,8 @@ struct CardView: View {
                 }
             }
             .offset(offset)
-            .rotationEffect(.degrees(Double(offset.width / 20)))
-            .scaleEffect(max(0.85, 1.0 - abs(Double(offset.width) / 800)))
+            .rotationEffect(.degrees(reduceMotion ? 0 : Double(offset.width / 20)))
+            .scaleEffect(reduceMotion ? 1 : max(0.85, 1.0 - abs(Double(offset.width) / 800)))
             .gesture(
                 DragGesture()
                     .onChanged { value in
@@ -70,7 +71,7 @@ struct CardView: View {
                             // Liked — fly right
                             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                             SoundManager.shared.playSwipeRight()
-                            withAnimation(.easeOut(duration: 0.25)) {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
                                 offset = CGSize(width: 500, height: offset.height)
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -81,7 +82,7 @@ struct CardView: View {
                             // Disliked — fly left
                             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                             SoundManager.shared.playSwipeLeft()
-                            withAnimation(.easeOut(duration: 0.25)) {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
                                 offset = CGSize(width: -500, height: offset.height)
                             }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -90,13 +91,13 @@ struct CardView: View {
                         } else {
                             // Snap back
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.7)) {
                                 offset = .zero
                             }
                         }
                     }
             )
             .accessibilityLabel("Foto")
-            .accessibilityValue("Score: \(Int(score * 100))%")
+            .accessibilityValue("Affinità con il tuo gusto: \(Int(score * 100))%")
     }
 }

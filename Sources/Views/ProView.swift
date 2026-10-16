@@ -11,7 +11,7 @@ struct ProView: View {
                     Label("GALLERIA PRO", systemImage: "sparkles").font(.caption.bold()).tracking(2)
                         .foregroundStyle(GalleryStyle.accent)
                     Text("Più spazio.\nMeno disordine.")
-                        .font(.system(size: 42, weight: .medium, design: .serif))
+                        .font(.system(.largeTitle, design: .serif).weight(.medium))
                     Text("Gli strumenti per prenderti cura della tua libreria, in un unico acquisto.")
                         .foregroundStyle(GalleryStyle.secondary)
                     VStack(alignment: .leading, spacing: 24) {
@@ -27,16 +27,21 @@ struct ProView: View {
                     Button {
                         proManager.purchasePro()
                     } label: {
-                        if proManager.isLoading { ProgressView().tint(GalleryStyle.background) }
+                        if proManager.isLoading || proManager.isLoadingProduct { ProgressView().tint(GalleryStyle.background) }
                         else { Text(proManager.isPro ? "Pro è attivo" : proManager.product.map { "Sblocca Pro · \($0.displayPrice)" } ?? "Acquisto non disponibile") }
                     }.buttonStyle(PrimaryButton())
-                        .disabled(proManager.product == nil || proManager.isLoading || proManager.isPro)
+                        .disabled(proManager.product == nil || proManager.isLoading || proManager.isLoadingProduct || proManager.isPro)
                         .opacity(proManager.product == nil ? 0.5 : 1)
                     HStack {
                         Button("Ripristina acquisti") { proManager.restorePurchases() }
                         Spacer()
                         if proManager.product == nil { Button("Riprova") { Task { await proManager.loadProduct() } } }
                     }.font(.footnote).disabled(proManager.isLoading)
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let url = ReleaseConfiguration.privacyURL { Link("Informativa privacy", destination: url) }
+                        if let url = ReleaseConfiguration.supportURL { Link("Assistenza", destination: url) }
+                        Link("Condizioni d’uso", destination: ReleaseConfiguration.termsURL)
+                    }.font(.caption)
                     Text("Pagamento tramite il tuo account Apple. Acquisto singolo, senza rinnovo automatico.")
                         .font(.caption).foregroundStyle(GalleryStyle.secondary)
                 }.padding(26).frame(maxWidth: 600).frame(maxWidth: .infinity)

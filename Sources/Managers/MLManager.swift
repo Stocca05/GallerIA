@@ -15,6 +15,7 @@ final class MLManager: Sendable {
             }
 
             let floats = observation.data.withUnsafeBytes { ptr in Array(ptr.bindMemory(to: Float.self)) }
+            guard !floats.isEmpty, floats.allSatisfy({ $0.isFinite }) else { return nil }
             return floats
         } catch {
             return nil

@@ -23,6 +23,11 @@ class DashboardViewModel: ObservableObject {
         if clear { goodAssets = []; badAssets = [] }
     }
 
+    func removeReviewed(_ id: String) {
+        goodAssets.removeAll { $0.id == id }
+        badAssets.removeAll { $0.id == id }
+    }
+
     func startScan(threshold: Double) {
         guard scanTask == nil else { return }
         isScanning = true
@@ -63,8 +68,9 @@ class DashboardViewModel: ObservableObject {
                 onCancel: { loadingTask.cancel() }
             guard !Task.isCancelled else { return }
 
-            self.goodAssets = loadedAssets.filter { $0.score >= Float(threshold) }
-            self.badAssets = loadedAssets.filter { $0.score < Float(threshold) }
+            let candidates = loadedAssets.filter { !HistoryManager.shared.isRated($0.id) && !PhotoDecisionStore.shared.isProtected($0.id) }
+            self.goodAssets = classifier.canRecommend ? candidates.filter { RecommendationPolicy.shouldKeep(score: $0.score, threshold: Float(threshold)) } : []
+            self.badAssets = classifier.canRecommend ? candidates.filter { RecommendationPolicy.shouldReviewForDeletion(score: $0.score, threshold: Float(threshold), favorite: $0.asset.isFavorite) }.sorted { $0.score < $1.score } : []
             self.isScanning = false
             self.scanTask = nil
         }
@@ -76,6 +82,9 @@ struct DashboardView: View {
     @ObservedObject var cleanupManager: CleanupManager
     @ObservedObject var photoManager: PhotoManager
     var onTrain: () -> Void
+    var onFeedback: ([ScoredAsset], PhotoDecisionReason, Bool) throws -> Void
+    @ObservedObject private var decisions = PhotoDecisionStore.shared
+    @State private var recommendationKind: RecommendationKind?
     @AppStorage("aestheticThreshold") private var threshold = 0.5
     @State private var selectedCleanup: CleanupType?
     @State private var showGallery = false
@@ -99,13 +108,14 @@ struct DashboardView: View {
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Fai spazio\\na ciò che ami.".replacingOccurrences(of: "\\n", with: "\n"))
-                        .font(.system(size: 42, weight: .medium, design: .serif))
+                        .font(.system(.largeTitle, design: .serif).weight(.medium))
                     Text("I tuoi ricordi meritano una bella selezione.")
                         .foregroundStyle(GalleryStyle.secondary)
                 }
                 if photoManager.isAuthorized {
                     libraryOverview
                     selectionCard
+                    recommendationSection
                     cleanupSection
                     highlights
                 } else {
@@ -119,6 +129,12 @@ struct DashboardView: View {
         .background(GalleryStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showPro) { ProView() }
+        .sheet(item: $recommendationKind) { kind in
+            RecommendationReviewView(viewModel: viewModel, kind: kind, groups: cleanupManager.duplicates.map { $0.assets.map(\.localIdentifier) }) { items, reason, deleted in
+                try onFeedback(items, reason, deleted)
+                for item in items { viewModel.removeReviewed(item.id) }
+            }
+        }
         .sheet(item: $selectedCleanup) { CleanupDetailView(cleanupManager: cleanupManager, type: $0) }
         .fullScreenCover(isPresented: $showGallery) { GalleryView(classifier: viewModel.classifier, mlManager: viewModel.mlManager) }
         .task(id: photoManager.libraryRevision) {
@@ -130,6 +146,10 @@ struct DashboardView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("GallerIAPreferencesChanged"))) { _ in
             if photoManager.isAuthorized { viewModel.cancelScan(); viewModel.startScan(threshold: threshold) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("GallerIAProtectionChanged"))) { _ in
+            viewModel.goodAssets.removeAll { decisions.isProtected($0.id) }
+            viewModel.badAssets.removeAll { decisions.isProtected($0.id) }
         }
         .refreshable {
             if photoManager.isAuthorized {
@@ -145,6 +165,7 @@ struct DashboardView: View {
             if status != .authorized && status != .limited {
                 viewModel.cancelScan(clear: true)
                 cleanupManager.clearResults()
+                recommendationKind = nil
                 selectedCleanup = nil
                 showGallery = false
             }
@@ -256,6 +277,35 @@ struct DashboardView: View {
                 Image(systemName: "chevron.right").font(.caption2).foregroundStyle(GalleryStyle.secondary)
             }.padding(.vertical, 20).contentShape(Rectangle())
         }.buttonStyle(.plain)
+    }
+
+    private var recommendationSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("I consigli per te").font(.title3.bold())
+            if let error = decisions.loadError { Text(error).font(.footnote).foregroundStyle(.orange) }
+            if !viewModel.classifier.canRecommend {
+                Text("Scegli almeno 5 foto che ti piacciono e 5 che non fanno per te nella scheda Seleziona. Poi potrai confermare o correggere i consigli per migliorare il modello.")
+                    .font(.subheadline).foregroundStyle(GalleryStyle.secondary)
+            }
+            ForEach(RecommendationKind.allCases) { kind in
+                Button { recommendationKind = kind } label: {
+                    HStack {
+                        Label(kind.rawValue, systemImage: kind == .keep ? "heart" : "trash")
+                        Spacer()
+                        if viewModel.isScanning { ProgressView() }
+                        else { Text((kind == .keep ? viewModel.goodAssets.count : viewModel.badAssets.count).formatted()) }
+                        Image(systemName: "chevron.right")
+                    }.font(.subheadline).padding(18)
+                        .background(GalleryStyle.surface, in: RoundedRectangle(cornerRadius: 18))
+                }.buttonStyle(.plain).disabled(!viewModel.classifier.canRecommend)
+            }
+            Text("I consigli riflettono il tuo gusto. Solo le tue scelte confermate insegnano al modello; i preferiti sono esclusi dalle proposte di eliminazione.")
+                .font(.caption).foregroundStyle(GalleryStyle.secondary)
+            if decisions.data.deletedCount > 0 {
+                Label("\(decisions.data.deletedCount) foto riordinate con i consigli", systemImage: "checkmark.seal")
+                    .font(.caption).foregroundStyle(GalleryStyle.accent)
+            }
+        }
     }
 
     private var highlights: some View {

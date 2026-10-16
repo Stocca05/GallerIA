@@ -38,10 +38,14 @@ final class HistoryManager: @unchecked Sendable {
         }
     }
 
-    func reset() {
-        queue.async {
-            self.ratedIDs.removeAll()
-            self.save()
+    @discardableResult
+    func reset() -> Bool {
+        queue.sync {
+            do {
+                if FileManager.default.fileExists(atPath: fileURL.path) { try FileManager.default.removeItem(at: fileURL) }
+                ratedIDs.removeAll()
+                return true
+            } catch { return false }
         }
     }
 

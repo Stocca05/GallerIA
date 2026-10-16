@@ -10,7 +10,7 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                DashboardView(viewModel: DashboardViewModel(classifier: viewModel.classifier, mlManager: viewModel.mlManager), cleanupManager: cleanupManager, photoManager: viewModel.photoManager, onTrain: { selectedTab = 1 })
+                DashboardView(viewModel: DashboardViewModel(classifier: viewModel.classifier, mlManager: viewModel.mlManager), cleanupManager: cleanupManager, photoManager: viewModel.photoManager, onTrain: { selectedTab = 1 }, onFeedback: { try viewModel.confirmRecommendations($0, reason: $1, deleted: $2) })
             }.tabItem { Label("La tua libreria", systemImage: "square.grid.2x2") }.tag(0)
             NavigationStack {
                 TrainingTabView(viewModel: viewModel)
@@ -20,6 +20,9 @@ struct ContentView: View {
             SettingsView(classifier: viewModel.classifier)
                 .tabItem { Label("Impostazioni", systemImage: "slider.horizontal.3") }.tag(2)
         }
+        .alert("Preferenze non aggiornate", isPresented: Binding(get: { viewModel.trainingError != nil }, set: { if !$0 { viewModel.trainingError = nil } })) {
+            Button("OK") { viewModel.trainingError = nil }
+        } message: { Text(viewModel.trainingError ?? "Riprova.") }
         .tint(GalleryStyle.accent)
         .preferredColorScheme(.dark)
         .task { viewModel.photoManager.refreshIfAuthorized() }
@@ -52,6 +55,9 @@ struct TrainingTabView: View {
                 MainSwipingView(deck: viewModel.cardQueue, photosRated: viewModel.photosRated,
                     totalPhotos: viewModel.photoManager.totalPhotos, trashCount: 0,
                     pendingTrainings: viewModel.pendingTrainings,
+                    positiveCount: viewModel.classifier.positiveCount + viewModel.classifier.batchLabels.filter { $0 == 1 }.count,
+                    negativeCount: viewModel.classifier.negativeCount + viewModel.classifier.batchLabels.filter { $0 == 0 }.count,
+                    personalized: viewModel.classifier.canRecommend,
                     rateAction: { viewModel.rate(liked: $0, expectedID: displayedID) }, undoAction: { viewModel.undoLast() },
                     trainAction: { viewModel.performTraining() }, skipAction: { viewModel.skipCurrentPhoto() })
             } else {

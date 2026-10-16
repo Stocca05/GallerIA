@@ -1,0 +1,43 @@
+name: iOS checks
+on:
+  push:
+  pull_request:
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: command -v xcodegen || brew install xcodegen
+      - name: Generate project and check development configuration
+        run: |
+          xcodegen generate
+          python3 Scripts/check_release.py --development
+      - name: Choose an available iPhone simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          inventory = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "--json"]))
+          devices = [d for runtime, entries in inventory["devices"].items() if ".iOS-" in runtime for d in entries if d.get("isAvailable") and d["name"].startswith("iPhone")]
+          if not devices:
+              raise SystemExit("No iPhone simulator installed on the runner")
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write("SIMULATOR_ID=" + devices[0]["udid"] + "\n")
+          PY
+      - name: Build and test
+        run: |
+          xcodebuild -project GallerIA.xcodeproj -scheme GallerIA \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -parallel-testing-enabled NO -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: TestResults.xcresult
+          if-no-files-found: ignore

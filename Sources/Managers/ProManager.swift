@@ -8,27 +8,33 @@ final class ProManager: ObservableObject {
     @Published private(set) var isPro = false
     @Published private(set) var product: Product?
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingProduct = false
     @Published var message: String?
     private var updates: Task<Void, Never>?
+    private var entitlementGeneration = UUID()
 
-    init() {
+    init(automaticallyLoad: Bool = true) {
         updates = Task { [weak self] in
             for await result in Transaction.updates {
                 guard let self else { return }
-                if case .verified(let transaction) = result {
+                if case .verified(let transaction) = result, transaction.productID == Self.productID {
                     await self.refreshEntitlements()
                     await transaction.finish()
                 }
             }
         }
-        Task { await refreshEntitlements(); await loadProduct() }
+        if automaticallyLoad { Task { await refreshEntitlements(); await loadProduct() } }
     }
 
     deinit { updates?.cancel() }
 
     func loadProduct() async {
+        guard !isLoadingProduct else { return }
+        isLoadingProduct = true
+        defer { isLoadingProduct = false }
+        message = nil
         do {
-            product = try await Product.products(for: [Self.productID]).first
+            product = try await Product.products(for: [Self.productID]).first(where: { $0.type == .nonConsumable })
             if product == nil { message = "Gli acquisti non sono ancora disponibili. Riprova più tardi." }
         } catch { message = "Impossibile contattare App Store. Controlla la connessione e riprova." }
     }
@@ -42,7 +48,7 @@ final class ProManager: ObservableObject {
             do {
                 switch try await product.purchase() {
                 case .success(let result):
-                    guard case .verified(let transaction) = result else {
+                    guard case .verified(let transaction) = result, transaction.productID == Self.productID, transaction.revocationDate == nil else {
                         message = "Non è stato possibile verificare l’acquisto."; return
                     }
                     await refreshEntitlements()
@@ -68,7 +74,9 @@ final class ProManager: ObservableObject {
         }
     }
 
-    private func refreshEntitlements() async {
+    func refreshEntitlements() async {
+        let token = UUID()
+        entitlementGeneration = token
         var entitled = false
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
@@ -78,6 +86,6 @@ final class ProManager: ObservableObject {
                 entitled = true
             }
         }
-        isPro = entitled
+        if entitlementGeneration == token { isPro = entitled }
     }
 }

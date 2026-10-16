@@ -52,6 +52,35 @@ final class GallerIAUITests: XCTestCase {
         capture("06-editor", app)
     }
 
+    func testHelpAndProtectedMemoriesAreAvailableWithoutPhotoAccess() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-hasSeenOnboarding", "YES"]
+        app.launch()
+        app.tabBars.buttons["Impostazioni"].tap()
+        app.buttons["Guida e assistenza"].tap()
+        XCTAssertTrue(app.staticTexts["Comincia in un minuto"].waitForExistence(timeout: 5))
+        capture("07-help", app)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let protected = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Ricordi protetti (")).firstMatch
+        XCTAssertTrue(protected.waitForExistence(timeout: 5))
+        protected.tap()
+        XCTAssertTrue(app.navigationBars["Ricordi protetti"].waitForExistence(timeout: 5))
+        capture("08-protected", app)
+    }
+
+    func testLocalDataEraseRequiresExplicitConfirmation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-hasSeenOnboarding", "YES"]
+        app.launch()
+        app.tabBars.buttons["Impostazioni"].tap()
+        app.swipeUp()
+        app.buttons["Elimina tutti i dati locali"].tap()
+        XCTAssertTrue(app.buttons["Elimina dati locali"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Annulla"].tap()
+        XCTAssertFalse(app.alerts.buttons["Elimina dati locali"].exists)
+        XCTAssertTrue(app.buttons["Elimina tutti i dati locali"].exists)
+    }
+
     private func capture(_ name: String, _ app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

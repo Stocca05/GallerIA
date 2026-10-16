@@ -12,6 +12,7 @@ class GallerIAViewModel: ObservableObject {
     @Published var trashCount: Int = 0
     @Published var photosRated: Int = 0
     @Published var isLoading = false
+    @Published var trainingError: String?
 
     // MARK: - Dependencies
     let photoManager = PhotoManager()
@@ -23,6 +24,8 @@ class GallerIAViewModel: ObservableObject {
     var undoHistory: [(PhotoCard, Bool)] = []
     var pendingTrash: [PHAsset] = []
     private let prefetchCount = 5
+
+    init() { trainingError = classifier.storageError }
 
     // MARK: - Computed
     var topCard: PhotoCard? { cardQueue.first }
@@ -93,7 +96,7 @@ class GallerIAViewModel: ObservableObject {
                 // Only extract embedding once
                 if self.cardQueue[index].embedding == nil {
                     let embedding = await Task.detached(priority: .userInitiated) { () -> [Float]? in
-                        let id = card.asset.localIdentifier
+                        let id = "training-v2-\(card.asset.localIdentifier)-\(card.asset.modificationDate?.timeIntervalSince1970 ?? 0)"
                         if let cached = self.embeddingCache.getEmbedding(for: id) {
                             return cached
                         }
@@ -109,9 +112,19 @@ class GallerIAViewModel: ObservableObject {
                     guard let newIndex = self.cardQueue.firstIndex(where: { $0.id == card.id }) else { return }
                     self.cardQueue[newIndex].embedding = embedding
                     self.cardQueue[newIndex].score = self.classifier.predict(embedding: embedding)
+                    self.prioritizeReadyCards()
                 }
             }
         }
+    }
+
+    private func prioritizeReadyCards(preserveFirst: Bool = true) {
+        guard classifier.canRecommend, cardQueue.allSatisfy({ $0.embedding != nil }) else { return }
+        let ids = TrainingPriority.orderedIDs(cardQueue.map { (id: $0.id, score: $0.score) }, step: photosRated)
+        let order = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+        let current = preserveFirst ? cardQueue.first : nil
+        cardQueue.sort { order[$0.id, default: 0] < order[$1.id, default: 0] }
+        if let current { cardQueue.removeAll { $0.id == current.id }; cardQueue.insert(current, at: 0) }
     }
 
     // MARK: - Rating
@@ -120,6 +133,7 @@ class GallerIAViewModel: ObservableObject {
         if let expectedID, cardQueue.first?.id != expectedID { return }
         guard let first = cardQueue.first, first.image != nil, first.embedding != nil, !isTraining else { return }
         let currentCard = cardQueue.removeFirst()
+        prioritizeReadyCards(preserveFirst: false)
 
         photosRated += 1
 
@@ -143,6 +157,7 @@ class GallerIAViewModel: ObservableObject {
     func skipCurrentPhoto() {
         guard !cardQueue.isEmpty, !isTraining else { return }
         cardQueue.removeFirst()
+        prioritizeReadyCards(preserveFirst: false)
         fillQueue()
     }
 
@@ -185,6 +200,7 @@ class GallerIAViewModel: ObservableObject {
         undoHistory.removeAll()
 
         classifier.flushBatch()
+        trainingError = classifier.storageError
         NotificationCenter.default.post(name: .init("GallerIAPreferencesChanged"), object: nil)
         pendingTrainings = 0
 
@@ -195,11 +211,34 @@ class GallerIAViewModel: ObservableObject {
             }
         }
 
+        prioritizeReadyCards()
+
         // Brief visual feedback, then dismiss
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000)
             isTraining = false
         }
+    }
+
+    /// A deletion batch is committed once; housekeeping reasons never teach aesthetic taste.
+    func confirmRecommendations(_ items: [ScoredAsset], reason: PhotoDecisionReason, deleted: Bool = false) throws {
+        guard !items.isEmpty else { return }
+        let ids = Set(items.map(\.id))
+        try PhotoDecisionStore.shared.record(ids, reason: reason, deleted: deleted)
+        if !classifier.batchEmbeddings.isEmpty { performTraining() }
+        undoHistory.removeAll()
+        for item in items {
+            if let label = reason.trainingLabel { classifier.update(embedding: item.embedding, label: label) }
+            HistoryManager.shared.markAsRated(item.id)
+        }
+        if reason.trainingLabel != nil {
+            photosRated += items.count
+            performTraining()
+            if let error = classifier.storageError { throw NSError(domain: "GallerIA", code: 2, userInfo: [NSLocalizedDescriptionKey: error]) }
+        }
+        cardQueue.removeAll { ids.contains($0.id) }
+        photoManager.assets.removeAll { ids.contains($0.localIdentifier) }
+        fillQueue()
     }
 
     // MARK: - Reset
@@ -212,7 +251,8 @@ class GallerIAViewModel: ObservableObject {
         pendingTrainings = 0
         photosRated = 0
         classifier.reset()
-        HistoryManager.shared.reset()
+        trainingError = classifier.storageError
+        if !HistoryManager.shared.reset() { trainingError = "La cronologia delle valutazioni non è stata eliminata. Riprova dalle Impostazioni." }
         isFinished = false
         isLoading = true
         photoManager.requestAccessAndFetch()

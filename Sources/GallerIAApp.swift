@@ -6,6 +6,7 @@ struct GallerIAApp: App {
     @StateObject private var proManager = ProManager.shared
     @StateObject private var authManager = AuthManager.shared
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("isPrivacyLockEnabled") private var privacyEnabled = false
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding = false
 
     init() {
@@ -28,11 +29,12 @@ struct GallerIAApp: App {
                 #else
                 appContent
                 #endif
-            }
+            }.background(PrivacyShield(enabled: privacyEnabled, phase: scenePhase, authManager: authManager))
         }
         .modelContainer(for: [EmbeddingModel.self, RatedPhoto.self])
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { authManager.lock() }
+            if phase == .active { Task { await proManager.refreshEntitlements() } }
         }
     }
 
@@ -45,12 +47,6 @@ struct GallerIAApp: App {
                 ContentView()
                     .environmentObject(proManager)
                     .environmentObject(authManager)
-
-                if authManager.isPrivacyLockEnabled && !authManager.isAuthenticated {
-                    LockView()
-                        .environmentObject(authManager)
-                        .transition(.opacity)
-                }
             }
         }
     }

@@ -6,6 +6,9 @@ struct MainSwipingView: View {
     let totalPhotos: Int
     let trashCount: Int
     let pendingTrainings: Int
+    let positiveCount: Int
+    let negativeCount: Int
+    let personalized: Bool
     let rateAction: (Bool) -> Void
     let undoAction: () -> Void
     let trainAction: () -> Void
@@ -19,6 +22,16 @@ struct MainSwipingView: View {
                     Text("Quali foto ti rappresentano?").font(.headline)
                     Spacer()
                     Text("\(photosRated) scelte").font(.caption).foregroundStyle(GalleryStyle.secondary)
+                }
+                if !personalized {
+                    ProgressView(value: Double(min(positiveCount, 5) + min(negativeCount, 5)), total: 10) {
+                        Text("Personalizza i consigli").font(.subheadline.bold())
+                    }.tint(GalleryStyle.accent)
+                    Text("Mi piace: \(min(positiveCount, 5))/5 · Non fa per me: \(min(negativeCount, 5))/5. Le scelte si salvano ogni 10 valutazioni o con Salva preferenze.")
+                        .font(.caption).foregroundStyle(GalleryStyle.secondary)
+                } else {
+                    Label("Aiuta GallerIA con le foto più incerte", systemImage: "sparkles")
+                        .font(.caption).foregroundStyle(GalleryStyle.accent)
                 }
                 if let card = deck.first, let image = card.image {
                     CardView(image: image, score: card.score, onSwipe: rateAction)

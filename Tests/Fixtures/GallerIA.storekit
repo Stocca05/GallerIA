@@ -1,0 +1,25 @@
+{
+  "identifier": "0E04953A-86F0-49AE-A5B9-8646D390D566",
+  "nonRenewingSubscriptions": [],
+  "products": [{
+    "displayPrice": "4.99",
+    "familyShareable": false,
+    "internalID": "GALLERIA_PRO_TEST",
+    "localizations": [{
+      "description": "Strumenti di pulizia della libreria. Prezzo dimostrativo per i test locali.",
+      "displayName": "GallerIA Pro",
+      "locale": "it_IT"
+    }],
+    "productID": "com.stocca.GallerIA.pro.lifetime",
+    "referenceName": "GallerIA Pro — Local Test",
+    "type": "NonConsumable"
+  }],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "it_IT",
+    "_storefront": "ITA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [],
+  "version": { "major": 3, "minor": 0 }
+}

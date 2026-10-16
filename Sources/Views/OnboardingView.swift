@@ -21,7 +21,7 @@ struct OnboardingView: View {
                         }.foregroundStyle(GalleryStyle.accent)
                     }.frame(height: 230).padding(.vertical, 8)
                     Text("La tua libreria.\nIl tuo punto di vista.")
-                        .font(.system(size: 40, weight: .semibold, design: .serif))
+                        .font(.system(.largeTitle, design: .serif).weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Riscopri le foto che ami e fai spazio a quello che verrà.")
                         .font(.title3).foregroundStyle(GalleryStyle.secondary)

@@ -4,6 +4,9 @@ struct SettingsView: View {
     let classifier: AestheticClassifier
     @AppStorage("aestheticThreshold") private var threshold = 0.5
     @AppStorage("isPrivacyLockEnabled") private var privacyLock = false
+    @ObservedObject private var decisions = PhotoDecisionStore.shared
+    @State private var confirmErase = false
+    @State private var storageError: String?
     @State private var confirmReset = false
     @State private var showPrivacy = false
 
@@ -26,18 +29,29 @@ struct SettingsView: View {
                     Text("Una soglia più alta rende la raccolta più selettiva. Il punteggio riflette le tue preferenze, non la qualità assoluta di una foto.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
+                Section("I tuoi ricordi") {
+                    NavigationLink { ProtectedPhotosView() } label: {
+                        Label("Ricordi protetti (\(decisions.data.protectedIDs.count))", systemImage: "lock.shield")
+                    }
+                    NavigationLink { HelpView() } label: { Label("Guida e assistenza", systemImage: "questionmark.circle") }
+                }
                 Section("Privacy") {
-                    Toggle("Richiedi sblocco del dispositivo", isOn: $privacyLock)
+                    Toggle("Richiedi sblocco del dispositivo", isOn: Binding(get: { privacyLock }, set: { enabled in
+                        if !enabled || AuthManager.shared.canEnableLock() { privacyLock = enabled }
+                        else { storageError = "Prima configura un codice di sblocco nelle Impostazioni di iOS." }
+                    }))
                     Button("Come vengono usati i tuoi dati") { showPrivacy = true }
+                    if let url = ReleaseConfiguration.privacyURL { Link("Informativa privacy completa", destination: url) }
                     Button("Gestisci accesso alle foto") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
                 }
                 Section {
                     Button("Azzera le preferenze apprese", role: .destructive) { confirmReset = true }
-                } footer: { Text("Le tue foto restano nella libreria. La selezione ricomincia a imparare dai prossimi voti.") }
+                    Button("Elimina tutti i dati locali", role: .destructive) { confirmErase = true }
+                } footer: { Text("Azzerare le preferenze conserva i ricordi protetti. Eliminare tutti i dati locali rimuove anche le protezioni e la cache; le foto e l’acquisto Pro restano intatti.") }
                 Section {
-                    LabeledContent("Versione", value: "1.0")
+                    LabeledContent("Versione", value: ReleaseConfiguration.version)
                     Text("Fatto per i tuoi ricordi.").foregroundStyle(.secondary)
                 }
             }
@@ -45,11 +59,22 @@ struct SettingsView: View {
             .navigationTitle("Impostazioni")
             .confirmationDialog("Azzerare le preferenze?", isPresented: $confirmReset, titleVisibility: .visible) {
                 Button("Azzera preferenze", role: .destructive) {
-                    classifier.reset()
-                    HistoryManager.shared.reset()
                     NotificationCenter.default.post(name: .init("GallerIAReset"), object: nil)
                 }
             }
+            .alert("Eliminare preferenze, protezioni e cache locali?", isPresented: $confirmErase) {
+                Button("Elimina dati locali", role: .destructive) {
+                    do {
+                        try decisions.reset()
+                        try EmbeddingCache.shared.clear()
+                        NotificationCenter.default.post(name: .init("GallerIAReset"), object: nil)
+                    } catch { storageError = error.localizedDescription }
+                }
+                Button("Annulla", role: .cancel) { }
+            } message: { Text("Nessuna foto verrà cancellata. I ricordi non saranno più protetti nell’app.") }
+            .alert("Operazione non completata", isPresented: Binding(get: { storageError != nil }, set: { if !$0 { storageError = nil } })) {
+                Button("OK") { storageError = nil }
+            } message: { Text(storageError ?? "Riprova.") }
             .sheet(isPresented: $showPrivacy) {
                 NavigationStack {
                     ScrollView {

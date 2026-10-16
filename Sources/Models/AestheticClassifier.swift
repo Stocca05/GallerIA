@@ -2,6 +2,7 @@ import Foundation
 import Accelerate
 
 struct ClassifierData: Codable {
+    var featureVersion: Int? = nil
     var weights: [Float]?
     var bias: Float
     var iterations: Int
@@ -22,6 +23,7 @@ class AestheticClassifier {
     private var historyEmbeddings: [[Float]] = []
     private var historyLabels: [Float] = []
 
+    private(set) var storageError: String?
     private let storageURL: URL
 
     private func getFileURL() -> URL { storageURL }
@@ -29,27 +31,45 @@ class AestheticClassifier {
     init(storageURL: URL? = nil) {
         self.storageURL = storageURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ClassifierData.json")
         let url = getFileURL()
-        if let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode(ClassifierData.self, from: data) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            let decoded = try JSONDecoder().decode(ClassifierData.self, from: Data(contentsOf: url))
+            let embeddings = decoded.historyEmbeddings ?? []
+            let labels = decoded.historyLabels ?? []
+            let dim = decoded.weights?.count ?? embeddings.first?.count ?? 0
+            guard decoded.bias.isFinite, decoded.iterations >= 0,
+                  (decoded.weights?.allSatisfy { $0.isFinite } ?? true),
+                  embeddings.count == labels.count, embeddings.count <= 500,
+                  labels.allSatisfy({ $0 == 0 || $0 == 1 }),
+                  embeddings.allSatisfy({ $0.count == dim && Self.normalized($0) != nil }),
+                  decoded.weights == nil || dim > 0,
+                  decoded.featureVersion == nil || decoded.featureVersion == 1 else {
+                storageError = "Le preferenze salvate non sono valide. Azzera le preferenze dalle Impostazioni."; return
+            }
             weights = decoded.weights
             bias = decoded.bias
             iterations = decoded.iterations
-            historyEmbeddings = decoded.historyEmbeddings ?? []
-            historyLabels = decoded.historyLabels ?? []
+            historyEmbeddings = embeddings.compactMap(Self.normalized)
+            historyLabels = labels
+            if decoded.featureVersion == nil, !historyEmbeddings.isEmpty { trainOnHistory(); save() }
+        } catch {
+            storageError = "Impossibile leggere le preferenze salvate. Azzera le preferenze dalle Impostazioni."
         }
     }
 
     func save() {
         let dataToSave = ClassifierData(
+            featureVersion: 1,
             weights: weights,
             bias: bias,
             iterations: iterations,
             historyEmbeddings: historyEmbeddings,
             historyLabels: historyLabels
         )
-        if let encoded = try? JSONEncoder().encode(dataToSave) {
-            try? encoded.write(to: getFileURL(), options: .atomic)
-        }
+        do {
+            try JSONEncoder().encode(dataToSave).write(to: getFileURL(), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            storageError = nil
+        } catch { storageError = "Le preferenze non sono state salvate. Controlla lo spazio disponibile e riprova." }
     }
 
     func reset() {
@@ -60,11 +80,14 @@ class AestheticClassifier {
         batchLabels.removeAll()
         historyEmbeddings.removeAll()
         historyLabels.removeAll()
-        try? FileManager.default.removeItem(at: getFileURL())
+        do {
+            if FileManager.default.fileExists(atPath: getFileURL().path) { try FileManager.default.removeItem(at: getFileURL()) }
+            storageError = nil
+        } catch { storageError = "Impossibile eliminare le preferenze salvate. Riprova dalle Impostazioni." }
     }
 
     func predict(embedding: [Float]) -> Float {
-        guard let w = weights, w.count == embedding.count else {
+        guard let embedding = Self.normalized(embedding), let w = weights, w.count == embedding.count else {
             return 0.5
         }
 
@@ -73,11 +96,26 @@ class AestheticClassifier {
         vDSP_dotpr(w, 1, embedding, 1, &dotProduct, vDSP_Length(w.count))
         dotProduct += bias
 
-        return 1.0 / (1.0 + exp(-dotProduct))
+        guard dotProduct.isFinite else { return 0.5 }
+        return 1.0 / (1.0 + exp(-max(-20, min(20, dotProduct))))
     }
 
     var isTrained: Bool {
         weights != nil && iterations > 0
+    }
+
+    var positiveCount: Int { historyLabels.filter { $0 == 1 }.count }
+    var negativeCount: Int { historyLabels.filter { $0 == 0 }.count }
+    var canRecommend: Bool {
+        storageError == nil && RecommendationPolicy.canRecommend(positiveCount: positiveCount, negativeCount: negativeCount)
+    }
+
+    private static func normalized(_ embedding: [Float]) -> [Float]? {
+        guard !embedding.isEmpty, embedding.allSatisfy({ $0.isFinite }),
+              let maximum = embedding.map({ abs($0) }).max(), maximum > 0 else { return nil }
+        let scaled = embedding.map { $0 / maximum }
+        let norm = sqrt(scaled.reduce(Float(0)) { $0 + $1 * $1 })
+        return scaled.map { $0 / norm }
     }
 
     var totalSamples: Int {
@@ -85,7 +123,7 @@ class AestheticClassifier {
     }
 
     func update(embedding: [Float], label: Float) {
-        guard !embedding.isEmpty, embedding.allSatisfy({ $0.isFinite }),
+        guard let embedding = Self.normalized(embedding),
               label == 0 || label == 1,
               weights == nil || weights?.count == embedding.count else { return }
         if weights == nil {

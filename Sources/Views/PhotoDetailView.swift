@@ -6,6 +6,7 @@ struct PhotoDetailView: View {
     let score: Float
     var asset: PHAsset? = nil
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var decisions = PhotoDecisionStore.shared
     @State private var original: UIImage?
     @State private var loading = true
     @State private var isEnhancing = false
@@ -31,6 +32,16 @@ struct PhotoDetailView: View {
                     }
                     if let date = asset?.creationDate {
                         Text(date, format: .dateTime.day().month(.wide).year()).font(.title3.weight(.medium))
+                    }
+                    if let asset {
+                        Button {
+                            do { try decisions.setProtection(asset.localIdentifier, enabled: !decisions.isProtected(asset.localIdentifier)) }
+                            catch { errorMessage = error.localizedDescription }
+                        } label: {
+                            Label(decisions.isProtected(asset.localIdentifier) ? "Ricordo protetto" : "Proteggi questo ricordo", systemImage: decisions.isProtected(asset.localIdentifier) ? "lock.shield.fill" : "lock.shield")
+                        }.buttonStyle(.bordered)
+                        Text("I ricordi protetti non vengono proposti né consentiti per l’eliminazione in GallerIA.")
+                            .font(.caption).foregroundStyle(GalleryStyle.secondary)
                     }
                     VStack(alignment: .leading, spacing: 12) {
                         HStack { Text("Affinità con il tuo gusto"); Spacer(); Text(score, format: .percent.precision(.fractionLength(0))).bold() }
@@ -76,7 +87,7 @@ struct PhotoDetailView: View {
                     } else { original = image; ready = true }
                     loading = false
                 }
-                .alert("Regolazione non riuscita", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                .alert("Operazione non completata", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                     Button("OK") { errorMessage = nil }
                 } message: { Text(errorMessage ?? "Riprova.") }
         }.tint(GalleryStyle.accent).preferredColorScheme(.dark)
